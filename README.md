@@ -5,264 +5,269 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
   <img src="https://img.shields.io/badge/python-3-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
-  <img src="https://img.shields.io/badge/dependencias-ninguna-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
-  <img src="https://img.shields.io/badge/licencia-MIT-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+  <img src="https://img.shields.io/badge/dependencies-none-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+  <img src="https://img.shields.io/badge/license-MIT-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
 </p>
 
-Convierte el MacBook conectado a la tele en algo parecido a un Apple TV: una
-interfaz gigante navegable con flechas, el móvil como mando a distancia, y
-cada app en su propio escritorio a pantalla completa.
+Turns the MacBook connected to the TV into something like an Apple TV: a
+giant interface navigable with arrow keys, your phone as the remote, and
+every app in its own desktop at full screen.
 
-Sin dependencias: solo Python 3 (ya viene en macOS) y el navegador que tienes.
+No dependencies: just Python 3 (already on macOS) and the browser you have.
 
 <p align="center">
-  <img src="docs/screenshot-launcher.png" alt="Interfaz de la tele" width="85%">
+  <img src="docs/screenshot-launcher.png" alt="The TV interface" width="85%">
 </p>
 
-## Índice
+## Index
 
-- [Por qué](#por-qué)
-- [Instalación](#instalación)
-- [Arrancar](#arrancar)
-- [Permisos (solo la primera vez)](#permisos-solo-la-primera-vez)
-- [La interfaz de la tele](#la-interfaz-de-la-tele)
-- [Cada app en su propio escritorio](#cada-app-en-su-propio-escritorio)
-- [El mando](#el-mando)
-- [El temporizador de suspensión](#el-temporizador-de-suspensión)
-- [Sonido y vibración](#sonido-y-vibración)
-- [Personalizar](#personalizar)
-- [Cómo encaja](#cómo-encaja)
-- [Limitaciones conocidas](#limitaciones-conocidas)
-- [Licencia](#licencia)
+- [Why](#why)
+- [Installation](#installation)
+- [Starting it up](#starting-it-up)
+- [Permissions (first time only)](#permissions-first-time-only)
+- [The TV interface](#the-tv-interface)
+- [Each app gets its own desktop](#each-app-gets-its-own-desktop)
+- [The remote](#the-remote)
+- [The sleep timer](#the-sleep-timer)
+- [Sound and vibration](#sound-and-vibration)
+- [Customizing](#customizing)
+- [How it fits together](#how-it-fits-together)
+- [Known limitations](#known-limitations)
+- [License](#license)
 
-## Por qué
+## Why
 
-Conectar un Mac a la tele te deja con un ratón diminuto en un sofá a tres
-metros de distancia. MacTV reemplaza eso por:
+Hooking a Mac up to the TV leaves you with a tiny mouse pointer from a couch
+three meters away. MacTV replaces that with:
 
-- Una **interfaz de apps** pensada para verse y navegarse desde el sofá, con
-  flechas en vez de ratón.
-- El **móvil como mando**, con la disposición del mando del Apple TV
-  (superficie táctil, cruceta, OK, volumen...).
-- Cada app abierta entra en **su propio escritorio a pantalla completa**, y
-  puedes volver a MacTV sin cerrarla.
+- An **app interface** built to be seen and navigated from the couch, with
+  arrow keys instead of a mouse.
+- Your **phone as a remote**, laid out like the Apple TV remote (touch
+  surface, d-pad, OK, volume...).
+- Every app you open lands on **its own desktop at full screen**, and you
+  can get back to MacTV without closing it.
 
-Funciona con Netflix, YouTube, Disney+, Twitch, Stremio, Spotify y, en
-general, con cualquier app del Mac.
+Works with Netflix, YouTube, Disney+, Twitch, Stremio, Spotify and, in
+general, any app on the Mac.
 
-## Instalación
+## Installation
 
 ```bash
-git clone https://github.com/Alexxalataaa/mactv.git
-cd mactv
+git clone https://github.com/alexcalatyd/MacTV.git
+cd MacTV
 ./mactv
 ```
 
-No hay que instalar nada más: usa el Python 3 del sistema.
+Nothing else to install: it uses the system's own Python 3.
 
-Si quieres poder lanzarlo desde cualquier sitio escribiendo `mactv`, añade un
-alias a tu `~/.zshrc` apuntando al script:
+If you want to launch it from anywhere by typing `mactv`, add an alias to
+your `~/.zshrc` pointing at the script:
 
 ```bash
-alias mactv="/ruta/donde/clonaste/mactv/mactv"
+alias mactv="/path/where/you/cloned/MacTV/mactv"
 ```
 
-## Arrancar
+## Starting it up
 
 ```bash
 mactv
 ```
 
-El terminal imprime la dirección del mando:
+The terminal prints the remote's address:
 
 ```
 TV     ->  http://localhost:8777/
-Movil  ->  http://192.168.1.XXX:8777/remote
+Remote ->  http://192.168.1.XXX:8777/remote
 ```
 
-Abre esa segunda URL en el Safari del iPhone (misma WiFi) y dale a
-**Compartir → Añadir a pantalla de inicio**: queda como una app de mando, a
-pantalla completa y sin barras.
+Open that second URL in Safari on your iPhone (same WiFi) and tap
+**Share → Add to Home Screen**: it stays as a remote app, full screen and
+with no browser bars.
 
-`Ctrl+C` para salir. `mactv --no-ui` arranca solo el mando.
+`Ctrl+C` to quit. `mactv --no-ui` starts just the remote server.
 
-## Permisos (solo la primera vez)
+## Permissions (first time only)
 
-**Ajustes del Sistema → Privacidad y Seguridad → Accesibilidad** → activa la
-app de terminal desde la que lo lanzas (Ghostty, Terminal, iTerm…). MacTV envía
-pulsaciones reales y consulta ventanas; sin ese permiso no hace nada. Si falta,
-lo avisa al arrancar y abre el panel.
+**System Settings → Privacy & Security → Accessibility** → enable the
+terminal app you're launching it from (Ghostty, Terminal, iTerm…). MacTV
+sends real keystrokes and inspects windows; without that permission it does
+nothing. If it's missing, MacTV warns you on startup and opens the panel.
 
-## La interfaz de la tele
+## The TV interface
 
-- **Ver** — las apps ancladas: Netflix, YouTube, Disney+ y Twitch (tus apps web
-  de Brave), más Stremio y Spotify, que abren la app nativa. Cualquier app web
-  nueva que crees en Brave aparece aquí sola.
-- **Aplicaciones** — el resto, con **Suspensión** (la luna) como primera ficha.
-- Flechas para moverse, `OK` abre, `esc` vuelve. Escribir filtra al vuelo y el
-  filtro se borra solo a los 5 segundos.
+- **Watch** — the pinned apps: Netflix, YouTube, Disney+ and Twitch (your
+  Brave web apps), plus Stremio and Spotify, which open the native app. Any
+  new web app you create in Brave shows up here on its own.
+- **Apps** — everything else, with **Sleep** (the moon) as the first tile.
+- Arrow keys to move around, `OK` opens, `esc` goes back. Typing filters on
+  the fly and the filter clears itself after 5 seconds.
 
-Todo —cabecera, títulos, primera ficha de cada fila y pie— está alineado al
-mismo margen, y el bloque se centra en vertical cuando sobra sitio.
+Everything — header, titles, the first tile in each row, and the footer — is
+aligned to the same margin, and the whole block centers vertically when
+there's room to spare.
 
-La ficha enfocada se eleva y el resto se retira. La luz del fondo **sale del
-icono que tienes enfocado**: MacTV le saca el color dominante y lo usa para
-teñir la sala, que se desplaza siguiendo al foco. Así se ve desde lejos dónde
-estás sin tener que leer nada.
+The focused tile rises and the rest recede. The background light **comes
+from the icon you have focused**: MacTV pulls its dominant color and uses it
+to tint the room, which shifts to follow the focus. That way you can tell
+where you are from across the room without reading anything.
 
-## Cada app en su propio escritorio
+## Each app gets its own desktop
 
-MacTV **también** arranca a pantalla completa, en su propio escritorio, y lo
-que abres desde él entra a **pantalla completa en otro escritorio nuevo**. Con
-el botón **MacTV** del mando vuelves a su escritorio sin cerrar nada, y la app
-sigue ahí.
+MacTV **also** launches full screen, on its own desktop, and whatever you
+open from it lands **full screen on a brand-new desktop**. The **MacTV**
+button on the remote brings you back to its desktop without closing
+anything, and the app stays right there.
 
-Llegar a esto costó, porque macOS pone cuatro barreras y hay que sortear las
-cuatro. Están documentadas aquí para que no se rompa al tocar el código:
+Getting here took work, because macOS puts up four barriers and all four
+have to be worked around. They're documented here so the code doesn't break
+when someone touches it:
 
-1. **Las apps web del navegador no son procesos propios.** Netflix, YouTube,
-   Disney+ y Twitch eran ventanas del Brave del usuario, igual que MacTV. Pedir
-   "la ventana frontal de Brave" cogía cualquier pestaña al azar. Por eso MacTV
-   ya no usa esos accesos directos: lee la URL de cada uno (`CrAppModeShortcutURL`
-   de su Info.plist) y **abre cada app en su propia instancia del navegador**,
-   con su propio perfil en `~/.mactv/apps/`.
-2. **`--start-fullscreen` solo lo aplica macOS si se lanza desde el escritorio
-   normal.** Desde un escritorio a pantalla completa lo ignora en silencio. Como
-   MacTV vive en su propio escritorio a pantalla completa, antes de abrir
-   cualquier app **sale al escritorio normal** (activando el Finder) y lanza
-   desde allí. Lo mismo hace falta para las apps nativas, porque la pantalla
-   completa se les pone por accesibilidad y eso solo funciona en el escritorio
-   activo.
-3. **La accesibilidad solo ve las ventanas del escritorio activo.** No sirve
-   para tocar una ventana que está en otro escritorio, así que el seguimiento
-   se hace con la lista de ventanas de CoreGraphics y el resultado se confirma
-   **midiendo** el marco.
-4. **macOS activa aplicaciones, no procesos.** Las dos instancias del navegador
-   son la misma aplicación, y los atajos ctrl+flecha para cambiar de escritorio
-   vienen desactivados. Para **volver** a MacTV, estando a pantalla completa su
-   escritorio es solo suyo y tiene una única ventana, así que activar su
-   proceso no puede llevar a otro sitio; lo único que estorba es venir de una
-   app a pantalla completa, porque macOS se queda en ella, y por eso primero se
-   **esconde** la app (esconder una app a pantalla completa devuelve al
-   escritorio anterior). Si MacTV se quedase sin pantalla completa se usa el
-   camino de antes: activar el Finder (que siempre está en el escritorio
-   normal), subir la ventana de MacTV y devolverle el foco con un clic en su
-   barra de título.
+1. **The browser's web apps aren't their own processes.** Netflix, YouTube,
+   Disney+ and Twitch used to be windows of the user's own Brave, just like
+   MacTV. Asking for "Brave's front window" grabbed a random tab. That's why
+   MacTV no longer uses those shortcuts: it reads each one's URL (the
+   `CrAppModeShortcutURL` from its Info.plist) and **opens each app in its
+   own browser instance**, with its own profile under `~/.mactv/apps/`.
+2. **`--start-fullscreen` is only honored by macOS if launched from the
+   normal desktop.** From a full-screen desktop it's silently ignored. Since
+   MacTV lives on its own full-screen desktop, before opening any app it
+   **steps out to the normal desktop** (by activating the Finder) and
+   launches from there. The same applies to native apps, because full
+   screen is set via accessibility and that only works on the active
+   desktop.
+3. **Accessibility can only see windows on the active desktop.** It can't
+   touch a window sitting on another desktop, so tracking is done with
+   CoreGraphics' window list, and the result is confirmed by **measuring**
+   the frame.
+4. **macOS activates applications, not processes.** Both browser instances
+   are the same application, and the ctrl+arrow shortcuts for switching
+   desktops are disabled. To **get back** to MacTV, since its desktop is
+   full screen and belongs only to it with a single window, activating its
+   process can't lead anywhere else; the only thing that gets in the way is
+   coming from a full-screen app, because macOS stays on it, so the app gets
+   **hidden** first (hiding a full-screen app returns you to the previous
+   desktop). If MacTV ever ends up without full screen, the older path is
+   used instead: activate the Finder (always on the normal desktop), raise
+   MacTV's window, and give it back focus with a click on its title bar.
 
-Medido en la máquina: la app entra a pantalla completa en ~1 s y la vuelta tarda
-~1,5 s, con la app viva.
+Measured on the machine: the app reaches full screen in ~1 s and coming back
+takes ~1.5 s, with the app still alive.
 
-**Precio a pagar:** cada app web usa su propio perfil de navegador. MacTV copia
-las cookies de tu Brave la primera vez, así que normalmente no hay que volver a
-iniciar sesión; si alguna te la pide, es una vez y se queda guardada.
+**The cost:** each web app uses its own browser profile. MacTV copies your
+Brave cookies over the first time, so you usually don't have to log in
+again; if one does ask, it's just once and it's remembered after that.
 
-Se puede desactivar en `~/.mactv/config.json` (`"fullscreen"`, `"return_home"`).
+Can be turned off in `~/.mactv/config.json` (`"fullscreen"`, `"return_home"`).
 
-## El mando
+## The remote
 
-Una sola pantalla, sin pestañas, con la disposición del mando del Apple TV:
+A single screen, no tabs, laid out like the Apple TV remote:
 
 <p align="center">
-  <img src="docs/screenshot-remote.png" alt="El mando en el móvil" width="340">
+  <img src="docs/screenshot-remote.png" alt="The remote on the phone" width="340">
 </p>
 
-| Zona | Qué hace |
+| Zone | What it does |
 |------|----------|
-| **Superficie táctil** | Deslizar mueve el ratón, tocar hace clic, dos dedos desplazan. |
-| **Cruceta** | Navegar. Mantener pulsada una flecha la repite. |
-| **OK** | Tocar = aceptar. Arrastrar sin soltar = joystick de desplazamiento. |
-| **MacTV** | Vuelve a MacTV **sin cerrar** lo que estuvieras usando. |
-| **Cerrar** | Cierra el programa de delante (⌘Q). Al cerrarse vuelves a MacTV. |
-| **Atrás** | `esc`. |
-| **Play / Pausa** | Barra espaciadora. |
-| **Volumen** | Balancín con + y −, y silencio en el centro. |
+| **Touch surface** | Swipe moves the pointer, tap clicks, two fingers scroll. |
+| **D-pad** | Navigate. Hold an arrow to repeat it. |
+| **OK** | Tap = select. Drag without releasing = scroll joystick. |
+| **MacTV** | Returns to MacTV **without closing** whatever you were using. |
+| **Close** | Quits the frontmost app (⌘Q). Closing it returns you to MacTV. |
+| **Back** | `esc`. |
+| **Play / Pause** | Spacebar. |
+| **Volume** | Rocker with + and −, and mute in the middle. |
 
-Dimensionado contando las áreas seguras: entra entero sin scroll, comprobado a
-0 px de desbordamiento en iPhone SE, 13 Pro y 15 Pro Max. Cada botón pasa del
-objetivo táctil mínimo (58 px en la pantalla más pequeña) y cada control tiene
-una silueta distinta —pastilla ancha, pastilla estrecha, balancín alto— para
-encontrarlo con el pulgar sin mirar. Si se corta la conexión con el Mac sale un
-aviso arriba; mientras todo va bien, no sale nada.
+Sized accounting for the safe areas: fits entirely without scrolling,
+checked at 0 px of overflow on iPhone SE, 13 Pro and 15 Pro Max. Every
+button clears the minimum touch target (58 px on the smallest screen) and
+every control has a distinct silhouette — wide pill, narrow pill, tall
+rocker — so you can find it with your thumb without looking. If the
+connection to the Mac drops, a warning shows up at the top; while
+everything's fine, nothing shows at all.
 
-### Sensibilidad
+### Sensitivity
 
-El puntero **acelera según lo rápido que muevas el dedo**, como el trackpad del
-Mac: despacio es preciso, rápido cruza la pantalla de un tirón. El joystick de
-OK hace lo mismo con la distancia: suave cerca del centro, rápido en el borde.
+The pointer **accelerates based on how fast you move your finger**, like the
+Mac's trackpad: slow is precise, fast crosses the screen in one go. OK's
+joystick does the same thing with distance: gentle near the center, fast at
+the edge.
 
-Los parámetros están arriba del script de `web/remote.html`, en `ACC` y
-`STICK`, por si quieres más o menos:
+The parameters sit at the top of `web/remote.html`'s script, in `ACC` and
+`STICK`, in case you want more or less:
 
 ```js
 const ACC   = { base:1.0, k:3.6, exp:1.15, max:12, smooth:.45 };
 const STICK = { dead:9, span:80, exp:2.0, max:58, tick:55 };
 ```
 
-Sube `ACC.k` o `ACC.max` para que corra más; baja `ACC.base` para más precisión
-en los movimientos lentos.
+Raise `ACC.k` or `ACC.max` to make it run faster; lower `ACC.base` for more
+precision on slow movements.
 
-### El teclado aparece solo
+### The keyboard shows up by itself
 
-MacTV mira si la app que tienes delante tiene el foco en un campo de texto (una
-búsqueda de Netflix, por ejemplo) y el mando saca un aviso y abre el teclado.
+MacTV checks whether the app in front of you has focus on a text field (a
+Netflix search box, say) and the remote pops up a notice and opens the
+keyboard.
 
-Límite de iOS: Safari solo deja abrir el teclado dentro de un gesto, nunca desde
-un temporizador. Si lo bloquea, se abre con **el siguiente toque en cualquier
-parte del mando**. Es un toque, pero no es del todo automático y no puede serlo.
+An iOS limit: Safari only lets the keyboard open inside a gesture, never
+from a timer. If it gets blocked, it opens on **the next tap anywhere on the
+remote**. It's still a tap, but it isn't fully automatic and it can't be.
 
-## El temporizador de suspensión
+## The sleep timer
 
-La ficha de la luna abre 5, 10, 15, 30, 45 y 60 minutos. El temporizador se
-lanza como proceso aparte, así que sigue en pie aunque cierres MacTV o el
-terminal. Elegir otro tiempo sustituye el anterior. "Cancelar el temporizador" solo
-aparece si hay uno en marcha. La cuenta atrás se ve en la cabecera de la tele y
-en la propia ficha de la luna.
+The moon tile opens 5, 10, 15, 30, 45 and 60 minutes. The timer launches as
+a separate process, so it keeps running even if you close MacTV or the
+terminal. Picking a different time replaces the previous one. "Cancel the
+timer" only shows up if one is running. The countdown shows in the TV's
+header and on the moon tile itself.
 
-## Sonido y vibración
+## Sound and vibration
 
-Las dos pantallas comparten `web/ui.js`: un sintetizador pequeño que fabrica
-cada señal al vuelo, sin archivos de audio. No son campanas ni pitidos —los
-parciales inarmónicos altos de una campana suenan a notificación barata—, sino
-tres capas cortas y cálidas apiladas:
+Both screens share `web/ui.js`: a small synthesizer that builds every cue on
+the fly, with no audio files. These aren't bells or beeps — a bell's high
+inharmonic partials sound like a cheap notification — but three short, warm
+layers stacked together:
 
-1. **Transitorio.** Ruido en banda estrecha, 10–30 ms, centrado en medios
-   (0,4–2 kHz). Es la articulación: el «toc» de madera. Filtrado por arriba en
-   vez de por el medio silbaría.
-2. **Cuerpo.** Un seno o triángulo casi puro que decae rápido, normalmente con
-   un glissando pequeño. Bajar la altura un 5–10 % mientras decae es lo que
-   convierte un pitido en un «pop» con goma dentro.
-3. **Peso.** Un seno grave de 70–150 Hz, muy corto. No se oye como nota: se
-   siente. Sin él el sonido flota.
+1. **Transient.** Narrow-band noise, 10–30 ms, centered in the mids
+   (0.4–2 kHz). It's the articulation: the wooden "tock". Filtered from
+   above instead of the middle, it would whistle.
+2. **Body.** A near-pure sine or triangle that decays fast, usually with a
+   small glissando. Dropping the pitch 5–10% while it decays is what turns a
+   beep into a "pop" with some give in it.
+3. **Weight.** A low sine at 70–150 Hz, very short. You don't hear it as a
+   note: you feel it. Without it the sound floats.
 
-Encima, una cola de reverb oscura de 180 ms con envío por voz para que nada
-suene seco, y una saturación suave (tanh, pendiente 1 en el origen) en el
-master que pega las capas y hace de techo.
+On top of that, a dark 180 ms reverb tail with a per-voice send so nothing
+sounds dry, and gentle saturation (tanh, slope 1 at the origin) on the
+master that glues the layers together and acts as a ceiling.
 
-Los intervalos son quintas y cuartas justas, y el registro es bajo a propósito:
-navegar alterna dos alturas casi iguales, abrir sube una cuarta y se queda
-arriba, confirmar sube una quinta con cola, volver y cerrar bajan, y el tope
-contra un borde es la misma madera apagada y grave. Siguen graduadas: navegar y
-la repetición al mantener son un susurro, confirmar es lo más fuerte del
-conjunto.
+The intervals are just fifths and fourths, and the register is low on
+purpose: navigating alternates between two nearly identical pitches, opening
+rises a fourth and stays up there, confirming rises a fifth with a tail,
+going back and closing drop, and hitting an edge is the same muted, low
+wood. They're still graded: navigating and the repeat while holding are a
+whisper, confirming is the loudest of the set.
 
-Para oírlas todas seguidas hay una página de prueba en
-`http://<ip-del-mac>:8777/sounds`, con una señal por botón.
+To hear them all in a row there's a test page at
+`http://<mac-ip>:8777/sounds`, with one cue per button.
 
-En el móvil cada señal lleva además su vibración: un roce al navegar, un golpe
-al confirmar. Funciona con `navigator.vibrate` (Android, Chrome). **iOS Safari
-no lo implementa**: allí MacTV recurre a alternar un control `<input switch>`,
-que desde Safari 17.4 emite un tic del sistema. Es un tic fijo, no se puede
-graduar, y si el navegador no colabora simplemente no pasa nada.
+On the phone, each cue also carries its own vibration: a light brush to
+navigate, a solid hit to confirm. It works via `navigator.vibrate`
+(Android, Chrome). **iOS Safari doesn't implement it**: there, MacTV falls
+back to toggling an `<input switch>` control, which since Safari 17.4 fires
+a system tick. It's a fixed tick, can't be graded, and if the browser
+doesn't cooperate, nothing happens at all.
 
-Se puede silenciar desde la consola con `MacTV.mute(true)` o quitar la
-vibración con `MacTV.haptics(false)`; queda guardado en el navegador.
+Can be muted from the console with `MacTV.mute(true)` or have vibration
+turned off with `MacTV.haptics(false)`; it's saved in the browser.
 
-Ambas pantallas respetan `prefers-reduced-motion`: con esa preferencia activada
-no hay animación de entrada ni transiciones.
+Both screens respect `prefers-reduced-motion`: with that preference on,
+there's no entrance animation or transitions.
 
-## Personalizar
+## Customizing
 
-Todo en `~/.mactv/config.json`:
+Everything lives in `~/.mactv/config.json`:
 
 ```json
 {
@@ -275,52 +280,56 @@ Todo en `~/.mactv/config.json`:
 }
 ```
 
-Borra el archivo y se regenera. Puerto: `MACTV_PORT=9000 mactv`. Si instalas una
-app nueva, borra `~/.mactv/icons` y reinicia para que coja su icono.
+Delete the file and it regenerates. Port: `MACTV_PORT=9000 mactv`. If you
+install a new app, delete `~/.mactv/icons` and restart so it picks up its
+icon.
 
-### La dirección del mando
+### The remote's address
 
-Abajo a la derecha, en la tele, sale la dirección del mando con un lápiz. Es un
-botón: se llega con las flechas (está debajo de todo) o se pulsa con el trackpad
-del móvil. Dentro puedes escribirla a mano, elegir una de las direcciones que
-detecta el Mac, o volver a la detección automática. Se guarda en
-`remote_host` dentro de `config.json`.
+Down in the corner of the TV, the remote's address shows up with a pencil
+icon. It's a button: reachable with the arrow keys (it's at the very
+bottom) or tapped from the phone's trackpad. Inside, you can type it in by
+hand, pick one of the addresses the Mac detects, or go back to automatic
+detection. It's saved as `remote_host` inside `config.json`.
 
-Al abrirse, el campo de texto queda enfocado, así que **el móvil saca el teclado
-solo** y puedes escribir la IP desde el sofá.
+When it opens, the text field is already focused, so **the phone pulls up
+its own keyboard** and you can type the IP from the couch.
 
-## Cómo encaja
+## How it fits together
 
-El mando **no controla la interfaz de MacTV**: inyecta teclas reales en macOS.
-Así las flechas funcionan igual dentro del lanzador que dentro de Netflix, sin
-modos ni cambios de contexto.
+The remote **doesn't control MacTV's interface**: it injects real keystrokes
+into macOS. That's why the arrow keys work the same way inside the launcher
+as they do inside Netflix, with no modes or context switches.
 
-- `mactv.py` — servidor + inyección de eventos (CoreGraphics vía `ctypes`) +
-  seguimiento de ventanas + temporizador.
-- `web/launcher.html` — la tele. Una página que escucha las flechas del teclado.
-- `web/remote.html` — el mando.
-- `web/ui.js` — sonido y vibración, compartidos por las dos.
-- `web/sounds.html` — página de prueba de sonidos (`/sounds`).
+- `mactv.py` — server + event injection (CoreGraphics via `ctypes`) +
+  window tracking + timer.
+- `web/launcher.html` — the TV. A page that listens for arrow keys.
+- `web/remote.html` — the remote.
+- `web/ui.js` — sound and vibration, shared by both.
+- `web/sounds.html` — the sound test page (`/sounds`).
 
-Los iconos se extraen con NSWorkspace y se cachean en `~/.mactv/icons`. Todos
-los iconos de la interfaz son SVG propios, sin emojis.
+Icons are extracted with NSWorkspace and cached under `~/.mactv/icons`. Every
+icon in the interface is its own SVG, no emoji.
 
-## Consejo para la tele
+## Tip for the TV
 
-En **Ajustes → Pantallas**, con la tele conectada, elige una resolución escalada
-baja (1280×720). Todo el sistema se ve al doble de tamaño desde el sofá.
+In **System Settings → Displays**, with the TV connected, pick a low scaled
+resolution (1280×720). The whole system looks twice the size from the
+couch.
 
-## Limitaciones conocidas
+## Known limitations
 
-- Play/Pausa envía la barra espaciadora, que es lo que entienden Netflix,
-  YouTube, VLC y QuickTime. No controla Spotify en segundo plano.
-- Vigilar ventanas y detectar el campo de texto se hace consultando el sistema
-  cada segundo y medio: la vuelta a MacTV tarda un par de segundos.
-- Hay apps que no admiten pantalla completa (Ajustes del Sistema, por ejemplo).
-  Se abren normales; MacTV no insiste.
-- El mando no tiene contraseña: cualquiera en tu WiFi que conozca la URL puede
-  controlar el Mac. En casa vale; en una red compartida, no lo dejes arrancado.
+- Play/Pause sends the spacebar, which is what Netflix, YouTube, VLC and
+  QuickTime understand. It doesn't control Spotify in the background.
+- Watching windows and detecting the text field is done by polling the
+  system every second and a half: getting back to MacTV takes a couple of
+  seconds.
+- Some apps don't support full screen (System Settings, for instance).
+  They open normally; MacTV doesn't force it.
+- The remote has no password: anyone on your WiFi who knows the URL can
+  control the Mac. Fine at home; on a shared network, don't leave it
+  running.
 
-## Licencia
+## License
 
-MIT — mira [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

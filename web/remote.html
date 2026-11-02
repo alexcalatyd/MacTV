@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Mando MacTV</title>
+<title>MacTV Remote</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,8 +10,8 @@
 <meta name="theme-color" content="#07080b">
 <style>
   :root{
-    /* El mando se usa a oscuras: menos luminosidad que la tele y ningun
-       relleno blanco. Lo que confirma la pulsacion es --live, no un destello. */
+    /* The remote is used in the dark: less brightness than the TV and no
+       white fill anywhere. What confirms a press is --live, not a flash. */
     --ink:#07080b;
     --surface:rgba(255,255,255,.055);
     --surface-2:rgba(255,255,255,.1);
@@ -22,7 +22,7 @@
     --text-2:rgba(228,234,246,.6);
     --text-3:rgba(228,234,246,.34);
 
-    --live-rgb:10 132 255;             /* "activo, en marcha": un solo sentido */
+    --live-rgb:10 132 255;             /* "active, in progress": one meaning */
     --warn-rgb:255 69 58;
 
     --ui:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
@@ -30,7 +30,7 @@
 
     --gap:10px;
     --pagepad:15px;
-    --btn:clamp(58px,8.4vh,76px);      /* nunca por debajo del objetivo tactil */
+    --btn:clamp(58px,8.4vh,76px);      /* never below the touch-target minimum */
     --ring:clamp(178px,27vh,238px);
 
     --sh:0 12px 28px -12px rgba(0,0,0,.7);
@@ -50,7 +50,7 @@
             calc(env(safe-area-inset-bottom) + 10px);
   }
 
-  /* Una sola luz, fria y muy baja, para que el mando no ilumine el salon. */
+  /* A single light, cold and very low, so the remote doesn't light up the room. */
   .ambient{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
   .ambient i{position:absolute; display:block}
   .ambient i:nth-child(1){left:-40vw; top:-46vw; width:130vw; height:130vw;
@@ -61,8 +61,8 @@
   .ic{fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round;
       stroke-linejoin:round; display:block; width:24px; height:24px}
 
-  /* --------------------------------------------------------- estado de enlace
-     Silencio cuando todo va bien; claro cuando se corta. */
+  /* ----------------------------------------------------------- link status
+     Silent when everything's fine; clear when it drops. */
   #link{
     position:relative; z-index:3; flex:0 0 auto; display:none;
     align-items:center; justify-content:center; gap:.5em;
@@ -75,7 +75,7 @@
   #link .ic{width:15px; height:15px}
   @keyframes drop{from{opacity:0; transform:translateY(-8px)}to{opacity:1;transform:none}}
 
-  /* ------------------------------------------------------- superficie tactil */
+  /* ------------------------------------------------------------- touch surface */
   #pad{
     position:relative; z-index:1; flex:1 1 auto; min-height:96px;
     border-radius:30px; overflow:hidden;
@@ -87,7 +87,7 @@
     transition:border-color .16s ease;
   }
   #pad.hot{border-color:var(--edge-hi)}
-  /* la luz sigue al dedo: confirma que el puntero esta siguiendo el gesto */
+  /* the light follows the finger: confirms the pointer is tracking the gesture */
   #pad .spot{
     position:absolute; left:0; top:0; width:220px; height:220px; margin:-110px;
     border-radius:50%; opacity:0; pointer-events:none;
@@ -103,7 +103,7 @@
   }
   #pad.used .tip{opacity:0}
 
-  /* ---------------------------------------------------------------- cruceta */
+  /* ---------------------------------------------------------------- d-pad */
   .dpad{position:relative; z-index:1; flex:0 0 var(--ring); display:grid;
         place-items:center}
   .ring{
@@ -114,7 +114,7 @@
     -webkit-backdrop-filter:blur(24px) saturate(165%);
     box-shadow:0 18px 42px -16px rgba(0,0,0,.75), var(--inner);
   }
-  /* filo interior: el pulgar ve donde acaba la corona y empieza OK */
+  /* inner edge: the thumb can feel where the ring ends and OK begins */
   .ring::after{
     content:""; position:absolute; inset:24.5%; border-radius:50%;
     border:1px solid rgba(255,255,255,.055); pointer-events:none;
@@ -146,9 +146,9 @@
   #ok.stick{background:rgb(var(--live-rgb) / .3); border-color:rgb(var(--live-rgb) / .6);
             box-shadow:0 0 0 3px rgb(var(--live-rgb) / .28), 0 10px 22px -10px rgba(0,0,0,.7)}
 
-  /* --------------------------------------------------------------- botonera
-     Cada control tiene una silueta distinta para encontrarlo sin mirar:
-     pastilla ancha, pastilla estrecha, balancin alto. */
+  /* ------------------------------------------------------------- button row
+     Each control has a distinct silhouette so you can find it without
+     looking: wide pill, narrow pill, tall rocker. */
   .row{display:flex; gap:var(--gap); flex:0 0 auto}
   .row.a{height:var(--btn)}
   .row.b{height:calc(var(--btn) * 2 + var(--gap))}
@@ -172,7 +172,7 @@
   .btn.pressed{transform:scale(.96); background:rgb(var(--live-rgb) / .8);
             border-color:rgb(var(--live-rgb) / 1)}
   .btn.pressed .t{color:#fff}
-  /* Cerrar es la accion destructiva: mas estrecha, para no darle por error */
+  /* Close is the destructive action: narrower, so it's not hit by accident */
   .btn.danger{flex:.68 1 0}
   .btn.danger .ic{color:rgba(255,160,152,.9)}
   .btn.danger.pressed{background:rgb(211 54 46 / .92); border-color:rgb(var(--warn-rgb) / 1)}
@@ -197,7 +197,7 @@
   .rocker button.pressed{background:rgb(var(--live-rgb) / .8); color:#fff}
   .rocker .vmute .ic{width:22px; height:22px; color:var(--text-2)}
 
-  /* ---------------------------------------------------------------- escribir */
+  /* ---------------------------------------------------------------- typing */
   #kbBar{
     position:relative; z-index:2; flex:0 0 auto; display:none;
     align-items:center; gap:11px; padding:0 16px; height:50px; border-radius:18px;
@@ -274,65 +274,65 @@
 
 <div id="link" role="status">
   <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-offline"/></svg>
-  <span>Sin conexión con el Mac</span>
+  <span>No connection to the Mac</span>
 </div>
 
 <div id="kbBar" role="status">
   <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keyboard"/></svg>
-  <span>Hay un campo de texto abierto</span>
-  <span class="go">Toca para escribir</span>
+  <span>There's a text field open</span>
+  <span class="go">Tap to type</span>
 </div>
 
-<div id="pad" role="application" aria-label="Superficie táctil">
+<div id="pad" role="application" aria-label="Touch surface">
   <div class="spot" aria-hidden="true"></div>
-  <p class="tip">Desliza para mover el puntero. Toca para hacer clic, dos dedos para desplazar.</p>
+  <p class="tip">Swipe to move the pointer. Tap to click, two fingers to scroll.</p>
 </div>
 
 <div class="dpad">
   <div class="ring">
-    <button class="up"    data-k="up"    aria-label="Arriba"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-up"/></svg></button>
-    <button class="down"  data-k="down"  aria-label="Abajo"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-down"/></svg></button>
-    <button class="left"  data-k="left"  aria-label="Izquierda"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-left"/></svg></button>
-    <button class="right" data-k="right" aria-label="Derecha"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-right"/></svg></button>
-    <button id="ok" aria-label="Aceptar">OK</button>
+    <button class="up"    data-k="up"    aria-label="Up"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-up"/></svg></button>
+    <button class="down"  data-k="down"  aria-label="Down"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-down"/></svg></button>
+    <button class="left"  data-k="left"  aria-label="Left"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-left"/></svg></button>
+    <button class="right" data-k="right" aria-label="Right"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-right"/></svg></button>
+    <button id="ok" aria-label="Select">OK</button>
   </div>
 </div>
 
 <div class="row a">
-  <button class="btn" data-home aria-label="Volver a MacTV"><span>
+  <button class="btn" data-home aria-label="Back to MacTV"><span>
     <svg class="ic" viewBox="0 0 24 24"><use href="#ic-mark"/></svg>
     <span class="t">MacTV</span></span></button>
-  <button class="btn danger" data-sys="quitapp" aria-label="Cerrar la app de delante"><span>
+  <button class="btn danger" data-sys="quitapp" aria-label="Quit the frontmost app"><span>
     <svg class="ic" viewBox="0 0 24 24"><use href="#ic-close"/></svg>
-    <span class="t">Cerrar</span></span></button>
+    <span class="t">Close</span></span></button>
 </div>
 
 <div class="row b">
   <div class="col">
-    <button class="btn" data-k="esc" aria-label="Atrás"><span>
+    <button class="btn" data-k="esc" aria-label="Back"><span>
       <svg class="ic" viewBox="0 0 24 24"><use href="#ic-return"/></svg>
-      <span class="t">Atrás</span></span></button>
-    <button class="btn" data-k="space" aria-label="Reproducir o pausar"><span>
+      <span class="t">Back</span></span></button>
+    <button class="btn" data-k="space" aria-label="Play or pause"><span>
       <svg class="ic" viewBox="0 0 24 24"><use href="#ic-playpause"/></svg>
-      <span class="t">Play / Pausa</span></span></button>
+      <span class="t">Play / Pause</span></span></button>
   </div>
   <div class="rocker">
-    <button class="vup"   data-vol="up"   aria-label="Subir volumen"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-plus"/></svg></button>
-    <button class="vmute" data-vol="mute" aria-label="Silenciar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-vol-mute"/></svg></button>
-    <button class="vdown" data-vol="down" aria-label="Bajar volumen"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-minus"/></svg></button>
+    <button class="vup"   data-vol="up"   aria-label="Volume up"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-plus"/></svg></button>
+    <button class="vmute" data-vol="mute" aria-label="Mute"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-vol-mute"/></svg></button>
+    <button class="vdown" data-vol="down" aria-label="Volume down"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-minus"/></svg></button>
   </div>
 </div>
 
 <div id="kbPanel" role="dialog" aria-modal="true" aria-labelledby="kbTitle">
   <div class="kbCard">
     <h4 id="kbTitle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keyboard"/></svg>
-        Escribir en el Mac</h4>
-    <input id="field" placeholder="Lo que escribas aparece en el Mac"
+        Type on the Mac</h4>
+    <input id="field" placeholder="Whatever you type shows up on the Mac"
            autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
     <div class="kbRow">
-      <button data-kb="back" aria-label="Borrar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-backspace"/></svg></button>
-      <button data-kb="send" aria-label="Enviar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-send"/></svg></button>
-      <button data-kb="hide" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-close"/></svg></button>
+      <button data-kb="back" aria-label="Delete"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-backspace"/></svg></button>
+      <button data-kb="send" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-send"/></svg></button>
+      <button data-kb="hide" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-close"/></svg></button>
     </div>
   </div>
 </div>
@@ -341,25 +341,25 @@
 <script>
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
-/* sonido y vibracion viven en /ui.js, compartidos con la tele */
+/* sound and vibration live in /ui.js, shared with the TV */
 const fb = k => MacTV.feedback(k);
 
-/* ---------- sensibilidad ----------
-   El puntero acelera segun lo rapido que muevas el dedo: despacio es preciso,
-   rapido cruza la pantalla de un tiron. Son las mismas ideas que usa macOS. */
+/* ---------- sensitivity ----------
+   The pointer accelerates based on how fast you move your finger: slow is
+   precise, fast crosses the screen in one go. Same ideas macOS uses. */
 const ACC = {
-  base: 1.0,     // ganancia a velocidad cero (precision)
-  k:    3.6,     // cuanto acelera
-  exp:  1.15,    // curvatura
-  max:  12,      // tope
-  smooth: .45,   // suavizado de la velocidad medida (0 = nada)
+  base: 1.0,     // gain at zero speed (precision)
+  k:    3.6,     // how much it accelerates
+  exp:  1.15,    // curvature
+  max:  12,      // cap
+  smooth: .45,   // smoothing of the measured speed (0 = none)
 };
 const STICK = {
-  dead: 9,       // px muertos alrededor del centro
-  span: 80,      // px hasta la velocidad maxima
-  exp:  2.0,     // curva: suave cerca del centro
-  max:  58,      // px de scroll por tic
-  tick: 55,      // ms entre tics
+  dead: 9,       // dead px around the center
+  span: 80,      // px until max speed
+  exp:  2.0,     // curve: gentle near the center
+  max:  58,      // scroll px per tick
+  tick: 55,      // ms between ticks
 };
 
 let failures = 0;
@@ -371,20 +371,21 @@ function post(path, body){
 }
 const key = (k, mods) => post("/api/key", {key:k, mods:mods});
 
-/* pulsacion, con repeticion al mantener.
-   El estado "down" lo pone el JS y no :active, para que sobreviva al
-   arrastre del dedo y para que la repeticion tambien se note. */
+/* press, with repeat while held.
+   The "down" state is set by JS rather than :active, so it survives finger
+   drag and so the repeat is felt too. */
 function bind(el, fn, cue="press"){
-  /* En iOS el gesto tiene que aterrizar sobre un <input switch> real o no hay
-     tic (ver ui.js). MacTV.surface() devuelve ese switch superpuesto al boton;
-     en Android y escritorio devuelve el boton tal cual. */
+  /* On iOS the gesture has to land on a real <input switch> or there's no
+     tick (see ui.js). MacTV.surface() returns that switch overlaid on the
+     button; on Android and desktop it returns the button as-is. */
   const surf = MacTV.surface ? MacTV.surface(el) : el;
   const native = surf === el;
   let timer, rep;
   const start = e => {
-    /* Con switch superpuesto no se puede cancelar el gesto: el tic sale del
-       control al activarse, y preventDefault lo aborta. El zoom por doble
-       toque ya lo corta touch-action:manipulation en la propia superficie. */
+    /* With an overlaid switch you can't cancel the gesture: the tick comes
+       from the control activating, and preventDefault would abort it.
+       Double-tap zoom is already cut off by touch-action:manipulation on
+       the surface itself. */
     if (native) e.preventDefault();
     el.classList.add("pressed");
     fb(cue); fn();
@@ -406,7 +407,7 @@ $$("[data-vol]").forEach(el => bind(el, () => post("/api/volume", {dir:el.datase
 $$("[data-sys]").forEach(el => bind(el, () => post("/api/system", {action:el.dataset.sys}), "confirm"));
 $$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
 
-/* ---------- superficie tactil, con aceleracion ---------- */
+/* ---------- touch surface, with acceleration ---------- */
 (function(){
   const pad = $("#pad"), spot = $(".spot", pad);
   let x = 0, y = 0, t = 0, moved = 0, t0 = 0, two = false, v = 0, box = null;
@@ -475,7 +476,7 @@ $$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
   pad.addEventListener("touchcancel", () => { pad.classList.remove("hot"); two = false; });
 })();
 
-/* ---------- OK: pulsar, o arrastrar como joystick ---------- */
+/* ---------- OK: tap, or drag as a joystick ---------- */
 (function(){
   const ok = $("#ok");
   let sx = 0, sy = 0, dx = 0, dy = 0, stick = false, loop = null;
@@ -494,7 +495,7 @@ $$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
       loop = setInterval(tick, STICK.tick);
     }
     if (stick){
-      const k = Math.min(1, mag / STICK.span) * 9;      // el boton se inclina
+      const k = Math.min(1, mag / STICK.span) * 9;      // the button tilts
       ok.style.transform = `translate(${dx / mag * k || 0}px, ${dy / mag * k || 0}px)`;
     }
   }
@@ -503,7 +504,7 @@ $$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
     if (mag <= STICK.dead) return;
     const r = Math.min(1, (mag - STICK.dead) / (STICK.span - STICK.dead));
     const speed = Math.pow(r, STICK.exp) * STICK.max;
-    // empujar hacia abajo baja por la pagina, como un joystick
+    // pushing down scrolls down the page, like a joystick
     post("/api/mouse", {scroll: Math.round(-dy / mag * speed),
                         scrollx: Math.round(-dx / mag * speed)});
   }
@@ -534,7 +535,7 @@ $$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
   }));
 })();
 
-/* ---------- escritura ---------- */
+/* ---------- typing ---------- */
 const field = $("#field"), panel = $("#kbPanel"), bar = $("#kbBar");
 let last = "", kbOpen = false;
 
@@ -545,7 +546,7 @@ function openKb(){
 function closeKb(){ kbOpen = false; panel.classList.remove("on"); field.blur(); }
 
 bar.addEventListener("click", () => { fb("sheet"); openKb(); });
-/* un toque visible tambien en los botones del panel */
+/* a visible tap effect on the panel buttons too */
 function tapFx(el, cue, fn){
   el.addEventListener("pointerdown", () => el.classList.add("pressed"));
   ["pointerup","pointercancel","pointerleave"].forEach(t =>
@@ -572,7 +573,7 @@ field.addEventListener("keydown", e => {
                           e.target.value = ""; last = ""; }
 });
 
-/* el Mac avisa cuando hay un campo de texto con el foco */
+/* the Mac reports when a text field has focus */
 let typing = false, armed = null;
 function armNextTouch(){
   if (armed) return;
@@ -591,8 +592,8 @@ function poll(){
     if (typing && !kbOpen){
       bar.classList.add("on");
       MacTV.haptic("sheet");
-      // iOS solo abre el teclado dentro de un gesto; si lo bloquea, lo abre
-      // el siguiente toque en cualquier parte del mando
+      // iOS only opens the keyboard inside a gesture; if it blocks it, the
+      // next tap anywhere on the remote opens it instead
       field.focus();
       if (document.activeElement === field) openKb(); else armNextTouch();
     } else if (!typing){

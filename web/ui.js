@@ -1,51 +1,53 @@
-/* MacTV · capa compartida de sonido, vibracion y utilidades.
-   La usan la tele (launcher.html) y el mando (remote.html). Antes cada una
-   tenia su propio blip(); esto es una sola implementacion para las dos. */
+/* MacTV · shared layer for sound, vibration and utilities.
+   Used by the TV (launcher.html) and the remote (remote.html). Each one
+   used to have its own blip(); this is a single implementation for both. */
 (function (global) {
   "use strict";
 
   var reduced = false;
   try { reduced = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
 
-  /* ------------------------------------------------------------------ sonido
-     Todo se sintetiza al vuelo. La receta no es la de una campana: las
-     campanas tienen parciales inarmonicos altos y suenan a notificacion
-     barata. Lo que suena a interfaz cara son tres capas cortas y calidas:
+  /* ------------------------------------------------------------------ sound
+     Everything is synthesized on the fly. The recipe isn't a bell's: bells
+     have high inharmonic partials and sound like a cheap notification.
+     What sounds like an expensive interface is three short, warm layers:
 
-       1. transitorio  ruido en banda estrecha, 10-30 ms. Es la articulacion:
-                       el "toc" de madera. Va en medios (0,4-2 kHz), no en
-                       agudos, porque un ruido filtrado por arriba silba.
-       2. cuerpo       un seno o triangulo casi puro, con caida exponencial y
-                       a menudo un pequeno glissando. Bajar la altura 5-10 %
-                       mientras decae es lo que convierte un pitido en un
-                       "pop" con goma dentro.
-       3. peso         un seno grave de 70-150 Hz, muy corto. No se oye como
-                       nota: se siente. Sin el, el sonido flota.
+       1. transient    narrow-band noise, 10-30 ms. It's the articulation:
+                       the wooden "tock". It sits in the mids (0.4-2 kHz),
+                       not the highs, because noise filtered from above
+                       whistles.
+       2. body         a near-pure sine or triangle, with exponential decay
+                       and often a small glissando. Dropping the pitch 5-10%
+                       while it decays is what turns a beep into a "pop"
+                       with some give in it.
+       3. weight       a low sine at 70-150 Hz, very short. You don't hear
+                       it as a note: you feel it. Without it the sound
+                       floats.
 
-     Sobre eso, una cola de reverb oscura y muy corta (send por voz) para que
-     nada suene seco, y una saturacion suave en el master que pega las capas.
-     Los intervalos son quintas y cuartas justas: subir para abrir y
-     confirmar, bajar para volver y cerrar. */
+     On top of that, a short, dark reverb tail (per-voice send) so nothing
+     sounds dry, and gentle saturation on the master that glues the layers
+     together. The intervals are just fifths and fourths: rising to open
+     and confirm, falling to go back and close. */
 
   var ac = null, bus = null, wet = null, noiseBuf = null, muted = false;
   try { muted = localStorage.getItem("mactv.mute") === "1"; } catch (e) {}
 
-  /* Curva de saturacion suave (tanh). A los niveles de aqui casi no
-     distorsiona; su trabajo es redondear los transitorios y hacer de techo. */
+  /* Gentle saturation curve (tanh). At the levels used here it barely
+     distorts; its job is to round off transients and act as a ceiling. */
   function satCurve() {
     var n = 2048, c = new Float32Array(n), x, k = 1.8;
     for (var i = 0; i < n; i++) {
       x = i / (n - 1) * 2 - 1;
-      /* dividido por k, no por tanh(k): asi la pendiente en el origen es 1 y
-         las senales bajas pasan intactas en vez de subir 6 dB. El techo queda
-         en tanh(k)/k, que es el limitador. */
+      /* divided by k, not by tanh(k): that keeps the slope at the origin at
+         1, so quiet signals pass through intact instead of gaining 6 dB.
+         The ceiling ends up at tanh(k)/k, which is what limits it. */
       c[i] = Math.tanh(k * x) / k;
     }
     return c;
   }
 
-  /* Impulso de sala: ruido que decae rapido y ya filtrado hacia abajo por un
-     polo simple, para que la cola sea oscura y no un "sss". 180 ms bastan. */
+  /* Room impulse: noise that decays fast and is already low-passed by a
+     simple pole, so the tail is dark instead of a hiss. 180 ms is enough. */
   function room() {
     var n = Math.floor(ac.sampleRate * .18), b = ac.createBuffer(2, n, ac.sampleRate);
     for (var ch = 0; ch < 2; ch++) {
@@ -66,23 +68,24 @@
       if (!AC) return null;
       try { ac = new AC(); } catch (e) { return null; }
 
-      /* master: bus -> saturacion -> estante que quita filo -> salida.
-         Nada de DynamicsCompressor: se come 12 dB fijos aunque la senal vaya
-         muy por debajo del umbral, y aqui no hay nada que limitar. */
+      /* master: bus -> saturation -> shelf that takes off the edge -> output.
+         No DynamicsCompressor: it eats a fixed 12 dB even when the signal
+         sits well under the threshold, and there's nothing to limit here. */
       var out = ac.createGain(); out.gain.value = .95;
       var tame = ac.createBiquadFilter();
       tame.type = "highshelf"; tame.frequency.value = 5000; tame.gain.value = -8;
       var glue = ac.createWaveShaper();
       glue.curve = satCurve();
       try { glue.oversample = "2x"; } catch (e) {}
-      /* 1,6 y no 1: el registro de estas senales es bajo, y a igual dBFS lo
-         grave se oye mas flojo (curvas isofonicas). Medido, el pico mas alto
-         (confirm) queda en -17 dBFS y la saturacion solo le quita 1 dB. */
+      /* 1.6, not 1: these signals sit in a low register, and at equal dBFS
+         low end sounds quieter (equal-loudness curves). Measured, the
+         loudest peak (confirm) sits at -17 dBFS and saturation only takes
+         1 dB off it. */
       bus = ac.createGain(); bus.gain.value = 1.6;
       bus.connect(glue); glue.connect(tame); tame.connect(out); out.connect(ac.destination);
 
-      /* envio de reverb, en paralelo y despues del estante para que la cola
-         entre ya oscura */
+      /* reverb send, in parallel and after the shelf so the tail enters
+         already dark */
       wet = ac.createGain(); wet.gain.value = .55;
       try {
         var rv = ac.createConvolver(); rv.buffer = room();
@@ -103,8 +106,8 @@
     return noiseBuf;
   }
 
-  /* Capa 1 y 3 comparten forma: ataque instantaneo, caida exponencial.
-     o: at, gain, dur, freq, q  ->  el "toc" */
+  /* Layers 1 and 3 share a shape: instant attack, exponential decay.
+     o: at, gain, dur, freq, q  ->  the "tock" */
   function tock(o) {
     var t = o.at, dur = o.dur || .02;
     var src = ac.createBufferSource(); src.buffer = noise();
@@ -118,10 +121,10 @@
     src.start(t); src.stop(t + dur + .01);
   }
 
-  /* Capa 2: la nota. o: at, gain, dur, attack, wave, bright, h2, to, bend, send
-     - to    factor de altura final (1.5 sube una quinta, .667 la baja)
-     - bend  en cuanto tiempo llega ahi; por defecto la mitad del decaimiento
-     - h2    octava por encima, a ese nivel relativo (da madera, no cristal) */
+  /* Layer 2: the note. o: at, gain, dur, attack, wave, bright, h2, to, bend, send
+     - to    final pitch factor (1.5 goes up a fifth, .667 goes down one)
+     - bend  how long it takes to get there; defaults to half the decay
+     - h2    octave above, at that relative level (gives wood, not glass) */
   function tone(f, o) {
     var t = o.at, dur = o.dur, i, osc;
 
@@ -157,16 +160,18 @@
     }
   }
 
-  /* Alturas afinadas entre si. Registro bajo a proposito: la version anterior
-     vivia en el octavo y noveno octava y por eso sonaba a juguete. */
+  /* Pitches tuned against each other. Low register on purpose: the
+     previous version lived in the eighth and ninth octave and that's
+     why it sounded like a toy. */
   var N = { E2: 82.41, G2: 98, A2: 110, B2: 123.47, C3: 130.81, E3: 164.81,
             F3: 174.61, G3: 196, A3: 220, C4: 261.63, D4: 293.66, E4: 329.63,
             G4: 392, A4: 440, B4: 493.88, C5: 523.25, E5: 659.25, G5: 783.99 };
   var flip = 0;
 
   var CUES = {
-    /* navegar: un toc de madera. Dos alturas casi iguales para que repetir no
-       suene a metronomo; la diferencia se nota sin llamar la atencion */
+    /* navigate: a wooden tock. Two near-equal pitches so repeating doesn't
+       sound like a metronome; the difference is felt without drawing
+       attention */
     nav: function (t) {
       var f = (flip ^= 1) ? N.B4 : 466.16;
       tock({ at: t, gain: .055, freq: 1450, q: .9, dur: .016 });
@@ -174,14 +179,16 @@
                 to: .94, bend: .05 });
       tone(N.A2, { at: t, dur: .05, gain: .04, bright: 1.5 });
     },
-    /* tope: la misma madera pero apagada y grave. Dice "no hay nada mas alla" */
+    /* edge of the list: the same wood but muted and low. Says "there's
+       nothing beyond this" */
     edge: function (t) {
       tock({ at: t, gain: .04, freq: 430, q: .7, dur: .03 });
       tone(N.F3, { at: t, dur: .12, gain: .08, wave: "triangle", bright: 1.6,
                    to: .87, bend: .1 });
       tone(N.E2, { at: t, dur: .1, gain: .05, bright: 1.5 });
     },
-    /* abrir algo: un pop que sube de la cuarta a la tonica y se queda arriba */
+    /* open something: a pop that rises from the fourth to the tonic and
+       stays up there */
     select: function (t) {
       tock({ at: t, gain: .05, freq: 1700, q: 1, dur: .013 });
       tone(N.G4, { at: t, dur: .085, gain: .085, bright: 2.4, to: 1.335, bend: .045 });
@@ -189,7 +196,7 @@
                    h2: .1, send: .28 });
       tone(N.C3, { at: t, dur: .13, gain: .05, bright: 1.6 });
     },
-    /* accion importante confirmada: quinta ascendente y cola con aire */
+    /* important action confirmed: ascending fifth with an airy tail */
     confirm: function (t) {
       tock({ at: t, gain: .045, freq: 1600, q: 1, dur: .012 });
       tone(N.C5, { at: t, dur: .15, gain: .095, bright: 2.6, h2: .08, send: .18 });
@@ -197,40 +204,40 @@
                    h2: .12, send: .45 });
       tone(N.C3, { at: t, dur: .17, gain: .055, bright: 1.6 });
     },
-    /* volver: el mismo pop, al reves. Baja una quinta mientras decae */
+    /* go back: the same pop, reversed. Drops a fifth while it decays */
     back: function (t) {
       tock({ at: t, gain: .04, freq: 1050, q: .9, dur: .015 });
       tone(N.A4, { at: t, dur: .13, gain: .09, bright: 2.2, to: .667, bend: .075,
                    send: .15 });
       tone(N.A2, { at: t, dur: .1, gain: .045, bright: 1.5 });
     },
-    /* abrir un panel: crece y sube una quinta, sin transitorio, al tiempo de
-       la animacion */
+    /* open a panel: grows and rises a fifth, no transient, timed to the
+       animation */
     sheet: function (t) {
       tone(N.C4, { at: t, dur: .34, gain: .07, bright: 2.4, attack: .05,
                    to: 1.5, bend: .17, h2: .09, send: .35 });
       tone(N.C3, { at: t, dur: .2, gain: .035, bright: 1.5, attack: .035 });
     },
-    /* cerrar un panel: lo mismo hacia abajo y mas corto */
+    /* close a panel: the same thing downward and shorter */
     close: function (t) {
       tone(N.G4, { at: t, dur: .26, gain: .06, bright: 2.2, attack: .022,
                    to: .667, bend: .15, send: .28 });
       tone(N.G2, { at: t, dur: .16, gain: .03, bright: 1.5, attack: .022 });
     },
-    /* boton del mando: tecla. Mas transitorio que nota */
+    /* remote button: a key. More transient than note */
     press: function (t) {
       tock({ at: t, gain: .075, freq: 2000, q: .8, dur: .012 });
       tone(N.E5, { at: t, dur: .05, gain: .06, wave: "triangle", bright: 1.9,
                    to: .88, bend: .038 });
       tone(N.B2, { at: t, dur: .045, gain: .04, bright: 1.5 });
     },
-    /* repeticion al mantener: la misma tecla, a la mitad */
+    /* repeat while held: the same key, at half strength */
     tick: function (t) {
       tock({ at: t, gain: .042, freq: 1950, q: .8, dur: .01 });
       tone(N.E5, { at: t, dur: .034, gain: .03, wave: "triangle", bright: 1.9,
                    to: .9, bend: .028 });
     },
-    /* algo ha fallado: dos notas graves y sordas, la segunda un semitono abajo */
+    /* something failed: two low, dull notes, the second a semitone lower */
     error: function (t) {
       tock({ at: t, gain: .032, freq: 390, q: .7, dur: .026 });
       tone(N.F3, { at: t, dur: .18, gain: .085, wave: "triangle", bright: 1.7,
@@ -247,19 +254,21 @@
     try { c(ac.currentTime + .001); } catch (e) {}
   }
 
-  /* --------------------------------------------------------------- vibracion
-     navigator.vibrate existe en Android/Chrome. iOS Safari no lo implementa:
-     el unico resorte que queda alli es alternar un control <input switch>,
-     que desde Safari 17.4 emite un tic del sistema. Es un tic fijo, no se
-     puede graduar, y si el navegador no colabora no pasa nada. */
+  /* --------------------------------------------------------------- vibration
+     navigator.vibrate exists on Android/Chrome. iOS Safari doesn't
+     implement it: the only lever left there is toggling an <input switch>
+     control, which since Safari 17.4 fires a system tick. It's a fixed
+     tick, can't be graded, and if the browser doesn't cooperate nothing
+     happens. */
 
   var canVibrate = !!(global.navigator && navigator.vibrate);
   var iosSwitch = null, iosOK = false, hasSwitch = false, looksIOS = false;
   try {
-    /* Dos senales, y basta con una. La propiedad IDL "switch" solo aparece
-       donde WebKit la refleja, y no esta garantizado que la refleje aunque
-       soporte el atributo; por eso no puede ser la unica prueba. La segunda
-       es la plataforma: iPad se identifica como Mac, de ahi maxTouchPoints. */
+    /* Two signals, and either one is enough. The "switch" IDL property only
+       shows up where WebKit reflects it, and there's no guarantee it
+       reflects it even if it supports the attribute; that's why it can't be
+       the only check. The second one is the platform: iPad identifies as
+       Mac, hence maxTouchPoints. */
     hasSwitch = "switch" in document.createElement("input");
     looksIOS = /iP(hone|od|ad)/.test(navigator.platform || "") ||
                (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform || ""));
@@ -281,7 +290,7 @@
     return iosSwitch;
   }
 
-  /* Patrones graduados: un roce para navegar, un golpe para confirmar. */
+  /* Graded patterns: a light brush to navigate, a solid hit to confirm. */
   var BUZZ = { nav: 7, edge: 22, select: 13, confirm: [11, 38, 20], back: 9,
                sheet: 10, close: 8, press: 11, tick: 5, error: [26, 50, 26] };
   var hapticsOn = true;
@@ -293,24 +302,26 @@
     if (canVibrate) { try { navigator.vibrate(p); } catch (e) {} return; }
     if (!iosOK || surfaceMode) return;
     var s = switchEl(); if (!s) return;
-    /* Tiene que ser click() sobre la etiqueta: el tic lo produce el control al
-       ejecutar su comportamiento de activacion. Esta via quedo cerrada en
-       iOS 26.5; se conserva porque en 17.4-26.4 sigue siendo la mas comoda.
-       Si ya hay superficies superpuestas (surfaceMode) el tic lo dan ellas y
-       aqui no se toca nada, o sonarian dos veces. */
+    /* Has to be click() on the label: the tick comes from the control
+       running its activation behavior. This path got closed off in
+       iOS 26.5; it's kept because on 17.4-26.4 it's still the most
+       convenient one. If overlay surfaces are already in play (surfaceMode)
+       they produce the tick and nothing happens here, or it would fire
+       twice. */
     try { s.click(); } catch (e) {}
   }
 
-  /* --------------------------------------------- superficie tactil con switch
-     Desde iOS 26.5 el tic solo sale si el dedo toca de verdad un <input
-     switch>: Apple cerro la activacion por codigo. La unica salida es poner
-     un switch real e invisible encima del boton y escuchar el gesto ahi.
+  /* --------------------------------------------- touch surface with a switch
+     Since iOS 26.5 the tick only fires if the finger actually touches an
+     <input switch>: Apple closed off programmatic activation. The only way
+     out is placing a real, invisible switch on top of the button and
+     listening for the gesture there.
 
-     No se puede meter dentro de un <button> (un control dentro de otro es
-     HTML invalido y iOS no lo activa), asi que va como hermano absoluto en el
-     offsetParent, calcado a la geometria del boton. Al quedarse en el mismo
-     contexto de apilamiento, cualquier panel que se abra encima lo tapa como
-     taparia al boton. */
+     It can't go inside a <button> (a control inside another is invalid HTML
+     and iOS won't activate it), so it's placed as an absolute sibling in
+     the offsetParent, matching the button's geometry exactly. Since it
+     stays in the same stacking context, any panel that opens over it covers
+     it just like it would cover the button. */
 
   var surfaceMode = false, pairs = [];
 
@@ -355,10 +366,10 @@
     } catch (e) { return el; }
   }
 
-  /* Lo que llaman las paginas: una senal, los dos canales. */
+  /* What the pages call: one cue, both channels. */
   function feedback(kind) { cue(kind); haptic(kind); }
 
-  /* iOS y Chrome solo dejan arrancar el audio dentro de un gesto. */
+  /* iOS and Chrome only let audio start inside a gesture. */
   function unlock() {
     ctx();
     ["pointerdown", "touchstart", "keydown"].forEach(function (e) {

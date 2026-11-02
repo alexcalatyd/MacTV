@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MacTV · sonidos</title>
+<title>MacTV · sounds</title>
 <style>
   :root{
     --bg:#0e0f13; --card:#191b22; --line:#2b2e39;
@@ -41,35 +41,35 @@
 </head>
 <body>
 
-<h1>Sonidos</h1>
-<p class="sub">Toca cada senal para oirla. Todas se sintetizan en el navegador:
-   un transitorio de madera, un cuerpo con caida corta y un golpe grave que se
-   siente mas que se oye.</p>
+<h1>Sounds</h1>
+<p class="sub">Tap each cue to hear it. All of them are synthesized in the
+   browser: a wooden transient, a body with a short decay, and a low hit you
+   feel more than you hear.</p>
 
 <div class="grid" id="grid"></div>
 
 <div class="bar">
-  <button id="mute" aria-pressed="false">Silencio</button>
-  <button id="all">Sonarlas todas</button>
+  <button id="mute" aria-pressed="false">Mute</button>
+  <button id="all">Play them all</button>
 </div>
 
-<p class="note">Si no suena nada: iOS solo arranca el audio dentro de un gesto,
-   asi que el primer toque puede quedarse corto. Vuelve a tocar.
-   Diagnostico haptico en <a href="/haptic">/haptic</a>.</p>
+<p class="note">If nothing plays: iOS only starts audio inside a gesture, so
+   the first tap might fall short. Tap again.
+   Haptics diagnostic at <a href="/haptic">/haptic</a>.</p>
 
 <script src="/ui.js"></script>
 <script>
 const CUES = [
-  ["nav",     "Mover el foco. Toc de madera, dos alturas alternas."],
-  ["edge",    "Tope de la lista. El mismo toc, apagado y grave."],
-  ["select",  "Abrir una app. Pop que sube una cuarta y se queda arriba."],
-  ["confirm", "Accion importante hecha. Quinta ascendente con cola."],
-  ["back",    "Volver. El pop al reves, baja una quinta."],
-  ["sheet",   "Abrir un panel. Crece y sube, sin transitorio."],
-  ["close",   "Cerrar un panel. Lo mismo hacia abajo y mas corto."],
-  ["press",   "Boton del mando. Tecla: mas transitorio que nota."],
-  ["tick",    "Repeticion al mantener pulsado. La tecla a la mitad."],
-  ["error",   "Algo ha fallado. Dos notas graves, la segunda mas baja."]
+  ["nav",     "Move the focus. Wooden tock, two alternating pitches."],
+  ["edge",    "Edge of the list. The same tock, muted and low."],
+  ["select",  "Open an app. Pop that rises a fourth and stays up there."],
+  ["confirm", "Important action done. Ascending fifth with a tail."],
+  ["back",    "Go back. The pop reversed, drops a fifth."],
+  ["sheet",   "Open a panel. Grows and rises, no transient."],
+  ["close",   "Close a panel. The same thing downward and shorter."],
+  ["press",   "Remote button. A key: more transient than note."],
+  ["tick",    "Repeat while held. The same key, at half strength."],
+  ["error",   "Something failed. Two low notes, the second one lower."]
 ];
 
 const grid = document.getElementById("grid");
@@ -90,8 +90,8 @@ mute.addEventListener("click", () => {
   if (!on) MacTV.cue("nav");
 });
 
-/* Encadenadas con hueco: asi se oye si el conjunto es coherente o si alguna
-   se sale del resto en volumen. */
+/* Chained with a gap: this is how you hear whether the set is coherent or
+   whether one of them sticks out from the rest in volume. */
 document.getElementById("all").addEventListener("click", () => {
   CUES.forEach(([kind], i) => setTimeout(() => MacTV.cue(kind), i * 620));
 });

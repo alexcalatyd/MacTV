@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MacTV · diagnostico haptico</title>
+<title>MacTV · haptics diagnostic</title>
 <style>
   :root{
     --bg:#0e0f13; --card:#191b22; --line:#2b2e39;
@@ -30,7 +30,7 @@
   .real{display:flex; align-items:center; gap:14px; font-size:16px}
   .real input{transform:scale(1.6); transform-origin:left center; margin:0 10px 0 2px}
 
-  /* prueba 5: un boton con un switch real invisible encima */
+  /* test 5: a button with a real, invisible switch on top */
   .demo{position:relative; width:100%; height:64px; border-radius:11px;
         background:#2f3340; border:1px solid var(--line);
         display:grid; place-items:center; font-weight:600; font-size:17px;
@@ -58,58 +58,59 @@
 </head>
 <body>
 
-<h1>Diagnóstico háptico</h1>
-<p class="sub">Apple cerró la vía por código en iOS&nbsp;26.5. Las dos pruebas
-marcadas <b>clave</b> son las que deciden si esto puede funcionar en tu iPhone.
-Las otras tres usan la vía cerrada y están aquí solo para confirmar el
-diagnóstico.</p>
+<h1>Haptics diagnostic</h1>
+<p class="sub">Apple closed off the programmatic path in iOS&nbsp;26.5. The two
+tests marked <b>key</b> are the ones that decide whether this can work on
+your iPhone. The other three use the closed path and are here only to
+confirm the diagnosis.</p>
 
 <section class="key">
-  <h2><span class="tag k">clave 1</span>Switch real, con el dedo</h2>
-  <p>Un <code>&lt;input type="checkbox" switch&gt;</code> normal. Deslízalo con
-     el dedo. <b>Si esto no vibra, iOS no da hápticos a la web en tu
-     dispositivo y no hay nada que programar.</b></p>
-  <label class="real"><input type="checkbox" switch id="real"> Deslízalo</label>
+  <h2><span class="tag k">key 1</span>Real switch, with your finger</h2>
+  <p>A normal <code>&lt;input type="checkbox" switch&gt;</code>. Drag it with
+     your finger. <b>If this doesn't vibrate, iOS doesn't give the web
+     haptics on your device and there's nothing to code around.</b></p>
+  <label class="real"><input type="checkbox" switch id="real"> Drag it</label>
 </section>
 
 <section class="key">
-  <h2><span class="tag k">clave 2</span>Switch invisible sobre un botón</h2>
-  <p>Esta es la única técnica que sobrevive a iOS&nbsp;26.5, y la que tendría
-     que montar en el mando: un switch real e invisible cubriendo el botón, de
-     modo que tu dedo lo active de verdad. Pulsa el botón.</p>
-  <div class="demo" id="demo">Pulsa aquí
+  <h2><span class="tag k">key 2</span>Invisible switch over a button</h2>
+  <p>This is the only technique that survives iOS&nbsp;26.5, and the one
+     that would need to go into the remote: a real, invisible switch
+     covering the button, so your finger actually activates it. Press the
+     button.</p>
+  <div class="demo" id="demo">Press here
     <label><input type="checkbox" switch id="ov" aria-hidden="true" tabindex="-1"></label>
   </div>
   <div class="log" id="log5"></div>
 </section>
 
 <section class="dead">
-  <h2><span class="tag d">cerrada</span>Switch visible, por código</h2>
-  <p><code>label.click()</code> sobre el switch de la prueba 1.</p>
-  <button class="plain" id="b2">Probar</button>
+  <h2><span class="tag d">closed</span>Visible switch, by code</h2>
+  <p><code>label.click()</code> on test 1's switch.</p>
+  <button class="plain" id="b2">Try it</button>
 </section>
 
 <section class="dead">
-  <h2><span class="tag d">cerrada</span>Switch oculto, por código</h2>
-  <p>Fuera de pantalla y <code>opacity:0</code>, como lo monta MacTV ahora.</p>
-  <button class="plain" id="b3">Probar</button>
+  <h2><span class="tag d">closed</span>Hidden switch, by code</h2>
+  <p>Off-screen and <code>opacity:0</code>, the way MacTV sets it up now.</p>
+  <button class="plain" id="b3">Try it</button>
 </section>
 
 <section class="dead">
-  <h2><span class="tag d">cerrada</span>La ruta actual de MacTV</h2>
-  <p><code>MacTV.haptic("nav")</code>, lo que hacen hoy las flechas.</p>
-  <button class="plain" id="b4">Probar</button>
+  <h2><span class="tag d">closed</span>MacTV's current path</h2>
+  <p><code>MacTV.haptic("nav")</code>, what the arrow keys do today.</p>
+  <button class="plain" id="b4">Try it</button>
   <div class="log" id="log4"></div>
 </section>
 
 <section>
-  <h2>Qué ha detectado el código</h2>
-  <div class="flags" id="flags">cargando…</div>
+  <h2>What the code detected</h2>
+  <div class="flags" id="flags">loading…</div>
 </section>
 
 <script src="/ui.js"></script>
 <script>
-/* clave 2 — el toque aterriza en el switch; el evento sube al contenedor */
+/* key 2 — the tap lands on the switch; the event bubbles up to the container */
 const demo = document.getElementById("demo");
 let n = 0;
 demo.addEventListener("touchstart", () => demo.classList.add("hit"), {passive:true});
@@ -117,10 +118,10 @@ demo.addEventListener("touchstart", () => demo.classList.add("hit"), {passive:tr
   demo.addEventListener(t, () => demo.classList.remove("hit"), {passive:true}));
 document.getElementById("ov").addEventListener("change", () => {
   document.getElementById("log5").textContent =
-    "el switch se ha activado (" + (++n) + ") · el evento llega bien";
+    "the switch fired (" + (++n) + ") · the event comes through fine";
 });
 
-/* vias cerradas */
+/* closed paths */
 document.getElementById("b2").addEventListener("click", () => {
   document.getElementById("real").closest("label").click();
 });
@@ -140,37 +141,37 @@ document.getElementById("b3").addEventListener("click", () => {
 });
 document.getElementById("b4").addEventListener("click", () => {
   const l = document.getElementById("log4");
-  if (!window.MacTV || !MacTV.haptic) return l.textContent = "✗ /ui.js no cargó";
+  if (!window.MacTV || !MacTV.haptic) return l.textContent = "✗ /ui.js didn't load";
   MacTV.haptic("nav");
-  l.textContent = "llamada hecha · iosOK=" + (MacTV.diag ? MacTV.diag().iosOK : "?");
+  l.textContent = "call made · iosOK=" + (MacTV.diag ? MacTV.diag().iosOK : "?");
 });
 
-/* banderas */
+/* flags */
 (function () {
   const el = document.getElementById("flags");
   const ua = navigator.userAgent;
   const ver = (ua.match(/OS (\d+[_.]\d+(?:[_.]\d+)?)/) || [, "?"])[1].replace(/_/g, ".");
   const major = parseFloat(ver) || 0;
-  const yn = v => v ? '<span class="y">sí</span>' : '<span class="n">NO</span>';
+  const yn = v => v ? '<span class="y">yes</span>' : '<span class="n">NO</span>';
   let head = "";
   if (major >= 26.5) head = '<span class="w">iOS ' + ver +
-    ' — la vía por código está cerrada. Solo puede funcionar la clave 2.</span>\n\n';
+    ' — the programmatic path is closed. Only key 2 can work.</span>\n\n';
   else if (major >= 17.4) head = '<span class="y">iOS ' + ver +
-    ' — deberían funcionar todas las vías.</span>\n\n';
+    ' — every path should work.</span>\n\n';
   else if (major) head = '<span class="n">iOS ' + ver +
-    ' — anterior a 17.4: no hay ninguna vía.</span>\n\n';
+    ' — older than 17.4: no path works at all.</span>\n\n';
 
   if (!window.MacTV || !MacTV.diag) {
-    el.innerHTML = head + '<span class="n">✗ /ui.js no cargó o es una versión antigua.</span>';
+    el.innerHTML = head + '<span class="n">✗ /ui.js didn\'t load, or it\'s an old version.</span>';
     return;
   }
   const d = MacTV.diag();
   el.innerHTML = head +
-    "<b>navigator.vibrate</b>    " + yn(d.canVibrate) + "  (solo Android)\n" +
+    "<b>navigator.vibrate</b>    " + yn(d.canVibrate) + "  (Android only)\n" +
     '<b>"switch" in input</b>    ' + yn(d.hasSwitch)  + "\n" +
-    "<b>parece iOS</b>           " + yn(d.looksIOS)   + "\n" +
+    "<b>looks like iOS</b>       " + yn(d.looksIOS)   + "\n" +
     "<b>iosOK</b>                " + yn(d.iosOK)      + "\n" +
-    "<b>hápticos activados</b>   " + yn(d.hapticsOn)  + "\n\n" +
+    "<b>haptics enabled</b>      " + yn(d.hapticsOn)  + "\n\n" +
     "<b>iOS</b>       " + ver + "\n" +
     "<b>platform</b>  " + d.platform + "\n" +
     "<b>UA</b>        " + ua;

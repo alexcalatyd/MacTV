@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>MacTV</title>
@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#07080b">
 <style>
   :root{
-    /* ---- tinta y superficies: la pantalla apagada como punto de partida ---- */
+    /* ---- ink and surfaces: the powered-off screen as a starting point ---- */
     --ink:#07080b;
     --surface:rgba(255,255,255,.055);
     --surface-2:rgba(255,255,255,.085);
@@ -19,12 +19,12 @@
     --text-2:rgba(228,234,246,.62);
     --text-3:rgba(228,234,246,.36);
 
-    /* un solo sentido por color: --live es "activo, en marcha" */
+    /* one meaning per color: --live is "active, in progress" */
     --live-rgb:10 132 255;
     --warn-rgb:255 69 58;
-    --amb-x:50vw; --amb-y:38vh;        /* la luz ambiente sigue al foco */
+    --amb-x:50vw; --amb-y:38vh;        /* the ambient light follows the focus */
 
-    /* ---- ritmo ---- */
+    /* ---- rhythm ---- */
     --gutter:clamp(40px,4.4vw,104px);
     --bar:clamp(64px,7.4vh,88px);
     --inset:clamp(14px,1.8vh,24px);
@@ -32,7 +32,7 @@
     --tile-app:clamp(98px,7.6vw,140px);
     --label:1.9em;
 
-    /* ---- tipografia: SF Pro Rounded, la familia de tvOS ---- */
+    /* ---- typography: SF Pro Rounded, the tvOS family ---- */
     --ui:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
     --meta:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     --t-display:clamp(25px,2.05vw,40px);
@@ -40,7 +40,7 @@
     --t-label:clamp(14px,1.05vw,20px);
     --t-meta:clamp(13px,.92vw,17px);
 
-    /* ---- forma ---- */
+    /* ---- shape ---- */
     --r-card:clamp(22px,2vw,32px);
     --r-chip:14px;
     --sh-1:0 10px 26px -10px rgba(0,0,0,.65);
@@ -67,10 +67,10 @@
   .ic{fill:none; stroke:currentColor; stroke-width:1.7;
       stroke-linecap:round; stroke-linejoin:round; display:block}
 
-  /* ---------------------------------------------------------------- ambiente
-     Nada de manchas de colores sueltas: una sola luz, del color del icono que
-     esta enfocado, que se desplaza con el. La habitacion la ilumina el
-     contenido. El rescoldo calido de abajo es la lampara del salon. */
+  /* ------------------------------------------------------------- ambient
+     No loose color blotches: a single light, the color of whichever icon
+     is focused, moving along with it. The content lights the room. The
+     warm glow at the bottom is the living-room lamp. */
   .ambient{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
   .glows{position:absolute; inset:0;
          transform:translate(calc(var(--amb-x) - 42vh), calc(var(--amb-y) - 42vh));
@@ -87,15 +87,15 @@
             background:radial-gradient(128% 104% at 50% 38%,
               transparent 42%, rgba(0,0,0,.5))}
 
-  /* Velos que funden el contenido al acercarse a las barras: van por debajo
-     del cromo (z 20 < 40) y por encima del contenido. */
+  /* Veils that fade the content near the bars: they sit below the chrome
+     (z 20 < 40) and above the content. */
   .veil{position:fixed; left:0; right:0; z-index:20; pointer-events:none}
   .veil.top{top:0; height:calc(var(--bar) + var(--inset) * 2 + 20px);
     background:linear-gradient(to bottom, var(--ink) 40%, transparent)}
   .veil.bot{bottom:0; height:calc(var(--bar) + var(--inset) * 2 + 28px);
     background:linear-gradient(to top, var(--ink) 44%, transparent)}
 
-  /* ------------------------------------------------------------------ cromo */
+  /* ------------------------------------------------------------------ chrome */
   header,footer{
     display:flex; align-items:center; gap:clamp(14px,1.4vw,26px);
     height:var(--bar); padding:0 clamp(18px,1.5vw,30px);
@@ -119,7 +119,7 @@
          font-variant-numeric:tabular-nums; letter-spacing:-.02em; line-height:1}
   .grow{margin-left:auto}
 
-  /* filtro al escribir */
+  /* type-to-filter */
   #filter{display:none; align-items:center; gap:.5em;
           padding:.45em .85em; border-radius:var(--r-chip);
           background:var(--surface-2); border:1px solid var(--edge);
@@ -130,7 +130,7 @@
   #filter span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   #filter em{font-style:normal; color:var(--text-3); font-weight:500}
 
-  /* temporizador en marcha: el unico uso de --live aqui */
+  /* timer running: the only use of --live here */
   #chip{display:none; align-items:center; gap:.45em; padding:.42em .82em;
         border-radius:999px; font-size:var(--t-meta); font-weight:650;
         letter-spacing:0; line-height:1; color:#c6dfff;
@@ -138,14 +138,14 @@
   #chip.on{display:flex}
   #chip .ic{width:1.15em; height:1.15em; stroke-width:1.9}
 
-  /* pistas del pie */
+  /* footer hints */
   .hints{display:flex; align-items:center; gap:clamp(14px,1.5vw,28px);
          font-family:var(--meta); font-size:var(--t-meta); font-weight:450;
          color:var(--text-3); letter-spacing:0; min-width:0}
   .hint{display:flex; align-items:center; gap:.5em; white-space:nowrap}
   .hint .ic{width:1.35em; height:1.35em; color:var(--text-2); flex:0 0 auto}
 
-  /* direccion del mando: es un boton, se llega con las flechas */
+  /* remote's address: it's a button, reachable with the arrow keys */
   #addr{
     display:flex; align-items:center; gap:.6em; margin-left:auto; flex:0 0 auto;
     padding:.5em .95em; border-radius:999px; border:1px solid transparent;
@@ -163,7 +163,7 @@
   }
   #addr.sel b{color:var(--text)}
 
-  /* --------------------------------------------------------------- secciones */
+  /* --------------------------------------------------------------- sections */
   main{position:relative; z-index:1; margin-block:auto; width:100%;
        padding-top:clamp(10px,1.4vh,26px)}
   h2{display:flex; align-items:baseline; gap:.55em;
@@ -191,10 +191,10 @@
     padding:clamp(16px,1.8vh,26px) var(--gutter) clamp(18px,2vh,28px);
   }
 
-  /* ----------------------------------------------------------------- fichas
-     El foco es el protagonista de toda la interfaz: lo enfocado se eleva y
-     florece en su propio color, y lo demas se retira. Eso es lo que hace que
-     se lea de un vistazo desde el sofa. */
+  /* ------------------------------------------------------------------ tiles
+     Focus is the star of the whole interface: what's focused rises and
+     blooms in its own color, and everything else recedes. That's what makes
+     it readable at a glance from the couch. */
   .tile{
     --tg:150 175 215;
     display:grid; grid-template-rows:auto var(--label); justify-items:center;
@@ -205,7 +205,7 @@
   }
   .art{
     position:relative; display:grid; place-items:center; overflow:hidden;
-    aspect-ratio:1; border-radius:22.5%;              /* proporcion de icono */
+    aspect-ratio:1; border-radius:22.5%;              /* icon proportion */
     background:linear-gradient(162deg, var(--surface-2), var(--surface));
     border:1px solid var(--edge);
     box-shadow:var(--sh-1), inset 0 1px 0 rgba(255,255,255,.1);
@@ -221,7 +221,7 @@
   .feat .art{width:100%}
   .app  .art{width:100%; max-width:var(--tile-app)}
   .app  .art img{width:75%; height:75%}
-  /* sin icono: la inicial, bien puesta, no una letra gigante suelta */
+  /* no icon: the initial, well placed, not a loose giant letter */
   .fb{position:relative; z-index:1; font-size:2.1em; font-weight:600;
       letter-spacing:-.04em; color:var(--text-2)}
 
@@ -247,7 +247,7 @@
   .tile:active .art{transform:scale(1.01) translateY(-2px);
                     transition-duration:90ms}
 
-  /* la ficha de suspension juega en el mismo sistema de luz */
+  /* the sleep tile plays in the same lighting system */
   .moon{--tg:138 132 232}
   .moon .art{background:linear-gradient(162deg,
     rgb(138 132 232 / .26), rgb(48 62 132 / .14))}
@@ -258,8 +258,8 @@
                text-align:center; font-size:.86em; font-weight:650;
                color:#cfdcff; font-variant-numeric:tabular-nums}
 
-  /* ------------------------------------------------------------ sin resultados
-     Una pantalla vacia es una invitacion a actuar, no un hueco. */
+  /* --------------------------------------------------------------- no results
+     An empty screen is an invitation to act, not a gap. */
   .empty{display:none; flex-direction:column; align-items:flex-start; gap:.35em;
          padding:clamp(28px,5vh,72px) var(--gutter)}
   .empty.on{display:flex}
@@ -269,7 +269,7 @@
   .empty p{font-family:var(--meta); font-size:var(--t-meta); font-weight:450;
            color:var(--text-3)}
 
-  /* -------------------------------------------------------------- hojas */
+  /* -------------------------------------------------------------- sheets */
   .sheet{position:fixed; inset:0; z-index:60; display:none; place-items:center;
          padding:var(--gutter); background:rgba(4,5,8,.62);
          backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px)}
@@ -320,8 +320,8 @@
   .opt.danger{grid-column:1/-1; color:#ff8f88; font-size:clamp(15px,1.15vw,19px);
               font-weight:600}
   .opt.danger.sel{--tg:255 69 58}
-  /* El campo va HUNDIDO y las opciones van elevadas: es lo que distingue
-     "aqui se escribe" de "esto se pulsa" sin tener que rotularlo. */
+  /* The field sits SUNKEN and the options sit raised: that's what tells
+     apart "type here" from "press this" without having to label it. */
   #host{
     width:100%; margin-bottom:clamp(16px,1.6vw,26px);
     padding:clamp(15px,1.4vw,20px) clamp(18px,1.6vw,26px);
@@ -337,9 +337,9 @@
               box-shadow:inset 0 2px 6px rgba(0,0,0,.55),
                          0 0 0 4px rgb(var(--live-rgb) / .22)}
 
-  /* ------------------------------------------------------- entrada de pagina
-     Un solo momento coreografiado al abrir, no una animacion por seccion en
-     cada re-render. Se quita la clase al acabar. */
+  /* ---------------------------------------------------------- page entrance
+     One choreographed moment on open, not a per-section animation on every
+     re-render. The class is removed once it's done. */
   .intro header{animation:drop .5s var(--ease) both}
   .intro footer{animation:lift .5s var(--ease) .08s both}
   .intro h2{animation:fade-up .5s var(--ease) both}
@@ -350,8 +350,9 @@
   @keyframes lift{from{opacity:0; transform:translateY(14px)}to{opacity:1;transform:none}}
   @keyframes fade-up{from{opacity:0; transform:translateY(12px)}to{opacity:1;transform:none}}
 
-  /* ------------------------------------------------------------------ movil
-     La tele tambien se abre a veces desde el telefono: ahi manda el dedo. */
+  /* ------------------------------------------------------------------ mobile
+     The TV is sometimes also opened from the phone itself: there, the
+     finger is in charge. */
   @media (max-width:760px){
     :root{
       --gutter:18px; --bar:56px; --inset:10px;
@@ -417,28 +418,28 @@
 
 <main>
   <section id="sec-feat" hidden>
-    <h2>Ver <em id="cFeat"></em></h2>
+    <h2>Watch <em id="cFeat"></em></h2>
     <div class="strip" id="feat"></div>
   </section>
   <section id="sec-apps" hidden>
-    <h2>Aplicaciones <em id="cApps"></em></h2>
+    <h2>Apps <em id="cApps"></em></h2>
     <div class="grid" id="apps"></div>
   </section>
   <div class="empty" id="empty">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
-    <h3 id="emptyTitle">Nada coincide</h3>
-    <p>Sigue escribiendo, o pulsa esc para ver todo otra vez.</p>
+    <h3 id="emptyTitle">Nothing matches</h3>
+    <p>Keep typing, or press esc to see everything again.</p>
   </div>
 </main>
 
 <footer>
   <div class="hints">
-    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-move"/></svg>moverse</span>
-    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-enter"/></svg>abrir</span>
-    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-return"/></svg>volver</span>
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-move"/></svg>move</span>
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-enter"/></svg>open</span>
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-return"/></svg>back</span>
   </div>
   <button id="addr">
-    <span>Mando <b id="remurl">…</b></span>
+    <span>Remote <b id="remurl">…</b></span>
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-pencil"/></svg>
   </button>
 </footer>
@@ -446,18 +447,18 @@
 <div class="sheet" id="sleepSheet" role="dialog" aria-modal="true" aria-labelledby="sleepTitle">
   <div class="card">
     <svg class="ic big" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-moon"/></svg>
-    <h3 id="sleepTitle">Suspender el Mac</h3>
-    <p>Elige cuánto falta para que se duerma. El temporizador sigue en pie aunque cierres MacTV.</p>
+    <h3 id="sleepTitle">Put the Mac to sleep</h3>
+    <p>Choose how long until it sleeps. The timer stays running even if you close MacTV.</p>
     <div class="opts" id="opts"></div>
   </div>
 </div>
 
 <div class="sheet" id="ipSheet" role="dialog" aria-modal="true" aria-labelledby="ipTitle">
   <div class="card">
-    <h3 id="ipTitle">Dirección del mando</h3>
-    <p>Escríbela, o elige una de las que ve el Mac. Se guarda para la próxima vez.</p>
+    <h3 id="ipTitle">Remote's address</h3>
+    <p>Type it in, or pick one of the ones the Mac sees. Saved for next time.</p>
     <input id="host" spellcheck="false" autocomplete="off" autocapitalize="off"
-           aria-label="Dirección del mando">
+           aria-label="Remote's address">
     <div class="opts one" id="ipOpts"></div>
   </div>
 </div>
@@ -467,16 +468,16 @@
 const $ = (s, r=document) => r.querySelector(s);
 const post = (p, b) => fetch(p, {method:"POST", headers:{"Content-Type":"application/json"},
                                 body: JSON.stringify(b||{})});
-/* sonido y vibracion viven en /ui.js, compartidos con el mando */
+/* sound and vibration live in /ui.js, shared with the remote */
 const fb = k => MacTV.feedback(k);
 
 const clock = () => $("#clock").textContent =
-  new Date().toLocaleTimeString("es-ES", {hour:"2-digit", minute:"2-digit"});
+  new Date().toLocaleTimeString("en-US", {hour:"2-digit", minute:"2-digit"});
 clock(); setInterval(clock, 10000);
 
-/* ---- la pagina le dice al Mac donde esta su ventana ----
-   Asi el servidor sabe que proceso es el lanzador y "Menu" puede volver
-   aqui sin confundirse con otra ventana del navegador. */
+/* ---- the page tells the Mac where its window is ----
+   That way the server knows which process is the launcher, and "Menu" can
+   come back here without confusing it with another browser window. */
 function announce(){
   post("/api/launcher", {x: window.screenX, y: window.screenY,
                          w: window.outerWidth, h: window.outerHeight}).catch(()=>{});
@@ -484,14 +485,14 @@ function announce(){
 announce();
 setInterval(announce, 20000);
 
-/* ---------------- estado ---------------- */
+/* ---------------- state ---------------- */
 let feat = [], apps = [], items = [], rows = [], sel = 0, query = "";
 let mode = "grid", optSel = 0, sleepOptions = [15,30,45], addresses = [];
 let firstPaint = true;
 
-/* ---------------- luz ambiente ----------------
-   El color dominante del icono tine el halo del foco y la luz de la sala.
-   Se calcula una vez por app sobre un lienzo de 16x16 y se guarda. */
+/* ---------------- ambient light ----------------
+   The icon's dominant color tints the focus halo and the room light. It's
+   computed once per app over a 16x16 canvas and cached. */
 const glowCache = new Map();
 const DEFAULT_GLOW = "150 175 215";
 
@@ -507,12 +508,12 @@ function iconGlow(img){
     if (a < .35) continue;
     const mx = Math.max(d[i], d[i+1], d[i+2]), mn = Math.min(d[i], d[i+1], d[i+2]);
     const sat = mx ? (mx - mn) / mx : 0;
-    const k = a * (.15 + sat * sat * 2.6);      // manda el color, no el gris
+    const k = a * (.15 + sat * sat * 2.6);      // color wins over gray
     r += d[i] * k; gr += d[i+1] * k; b += d[i+2] * k; w += k;
   }
   if (!w) return DEFAULT_GLOW;
   r /= w; gr /= w; b /= w;
-  const mx = Math.max(r, gr, b) || 1, s = 222 / mx;   // que se vea sobre negro
+  const mx = Math.max(r, gr, b) || 1, s = 222 / mx;   // so it shows up over black
   return `${Math.min(255, r*s)|0} ${Math.min(255, gr*s)|0} ${Math.min(255, b*s)|0}`;
 }
 
@@ -534,7 +535,7 @@ function ambient(el){
   next.classList.add("show"); prev.classList.remove("show");
 }
 
-/* ---------------- fichas ---------------- */
+/* ---------------- tiles ---------------- */
 function tile(cls, inner, label){
   const b = document.createElement("button");
   b.className = "tile " + cls;
@@ -565,7 +566,7 @@ function appTile(a, cls){
 function moonTile(){
   const el = tile("app moon",
     `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-moon"/></svg>
-     <span class="count" id="moonCount"></span>`, "Suspensión");
+     <span class="count" id="moonCount"></span>`, "Sleep");
   el._open = openSleep; el.onclick = el._open;
   return el;
 }
@@ -578,7 +579,7 @@ function render(){
   const q = query.trim().toLowerCase();
   const ff = feat.filter(a => a.name.toLowerCase().includes(q));
   const aa = apps.filter(a => a.name.toLowerCase().includes(q));
-  const showMoon = !q || "suspensión suspension dormir luna".includes(q);
+  const showMoon = !q || "sleep moon".includes(q);
 
   const fw = $("#feat"), aw = $("#apps");
   fw.innerHTML = ""; aw.innerHTML = "";
@@ -598,14 +599,14 @@ function render(){
   cells.forEach(el => { aw.appendChild(el); items.push(el); });
   items.push(addrBtn);
 
-  /* el recuento solo aparece cuando filtras, que es cuando dice algo */
+  /* the count only shows up while filtering, which is when it means something */
   $("#cFeat").textContent = q && ff.length ? ff.length : "";
   $("#cApps").textContent = q && aa.length ? aa.length : "";
   const nothing = !ff.length && !aa.length && !showMoon;
   $("#empty").classList.toggle("on", nothing);
-  if (nothing) $("#emptyTitle").textContent = `Nada coincide con «${query.trim()}»`;
+  if (nothing) $("#emptyTitle").textContent = `Nothing matches "${query.trim()}"`;
 
-  /* el retardo en cascada solo del primer pintado */
+  /* the staggered delay only applies to the first paint */
   if (firstPaint){
     let i = 0;
     items.forEach(el => { if (el !== addrBtn) el.style.setProperty("--i", Math.min(i++, 14)); });
@@ -667,20 +668,20 @@ function move(dr, dc){
   sel = next; fb("nav"); paint();
 }
 
-/* ---------------- hoja de suspension ---------------- */
+/* ---------------- sleep sheet ---------------- */
 function buildSleepOpts(){
   const w = $("#opts"); w.innerHTML = "";
   sleepOptions.forEach(m => {
     const b = document.createElement("button");
     b.className = "opt";
-    b.innerHTML = `${m}<small>minutos</small>`;
+    b.innerHTML = `${m}<small>minutes</small>`;
     b._go = () => { fb("confirm"); post("/api/sleep", {minutes:m}).then(pollSleep); closeSheet(true); };
     b.onclick = b._go; w.appendChild(b);
   });
-  /* "Cancelar" solo tiene sentido si hay algo que cancelar */
+  /* "Cancel" only makes sense if there's something to cancel */
   if (timer.active){
     const c = document.createElement("button");
-    c.className = "opt danger"; c.textContent = "Cancelar el temporizador";
+    c.className = "opt danger"; c.textContent = "Cancel the timer";
     c._go = () => { fb("back"); post("/api/sleep", {minutes:0}).then(pollSleep); closeSheet(true); };
     c.onclick = c._go; w.appendChild(c);
   }
@@ -690,7 +691,7 @@ function openSleep(){
   $("#sleepSheet").classList.add("on"); mode = "sleep"; paintOpts();
 }
 
-/* ---------------- hoja de direccion ---------------- */
+/* ---------------- address sheet ---------------- */
 function buildIpOpts(){
   const w = $("#ipOpts"); w.innerHTML = "";
   addresses.forEach(a => {
@@ -700,7 +701,7 @@ function buildIpOpts(){
     b.onclick = b._go; w.appendChild(b);
   });
   const c = document.createElement("button");
-  c.className = "opt danger"; c.textContent = "Volver a la detección automática";
+  c.className = "opt danger"; c.textContent = "Back to automatic detection";
   c._go = () => saveHost("");
   c.onclick = c._go; w.appendChild(c);
 }
@@ -714,7 +715,7 @@ function openIp(){
   fb("sheet"); buildIpOpts(); optSel = -1;
   $("#host").value = ($("#remurl").textContent || "").split(":")[0];
   $("#ipSheet").classList.add("on"); mode = "ip"; paintOpts();
-  setTimeout(() => $("#host").focus(), 60);   // el movil saca el teclado solo
+  setTimeout(() => $("#host").focus(), 60);   // the phone pulls up its own keyboard
 }
 function closeSheet(quiet){
   if (!quiet) fb("close");
@@ -725,7 +726,7 @@ function closeSheet(quiet){
 const opts = () => [...document.querySelectorAll(".sheet.on .opt")];
 const paintOpts = () => opts().forEach((o,i) => o.classList.toggle("sel", i === optSel));
 
-/* ---------------- temporizador ---------------- */
+/* ---------------- timer ---------------- */
 let timer = {active:false, remaining:0};
 const fmt = s => s >= 60 ? `${Math.floor(s/60)} min` : `${s} s`;
 function paintTimer(){
@@ -739,7 +740,7 @@ const pollSleep = () => fetch("/api/sleep").then(r => r.json())
 setInterval(() => { if (timer.active && timer.remaining > 0){ timer.remaining--; paintTimer(); } }, 1000);
 setInterval(pollSleep, 20000);
 
-/* ---------------- teclado ---------------- */
+/* ---------------- keyboard ---------------- */
 let searchTimer;
 function setSearch(){
   clearTimeout(searchTimer);
@@ -789,7 +790,7 @@ addEventListener("keydown", e => {
   e.preventDefault();
 });
 
-/* resize: remedir, sin reconstruir en cada evento */
+/* resize: re-measure, don't rebuild on every event */
 let reT;
 addEventListener("resize", () => {
   clearTimeout(reT);

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-MacTV - convierte el Mac en un Apple TV casero.
+MacTV - turns your Mac into a home Apple TV.
 
-  * Interfaz gigante a pantalla completa en la tele, navegable con flechas.
-  * Mando a distancia web para el movil.
-  * Cada app se abre en su propio escritorio (pantalla completa de macOS) y al
-    cerrarla vuelves a MacTV.
+  * Giant full-screen interface on the TV, navigable with arrow keys.
+  * Web-based remote control for your phone.
+  * Each app opens on its own desktop (macOS full screen) and closing it
+    brings you back to MacTV.
 
-Sin dependencias: solo Python 3 y macOS.
+No dependencies: just Python 3 and macOS.
 """
 
 import ctypes
@@ -28,8 +28,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 PORT = int(os.environ.get("MACTV_PORT", "8777"))
-# Segundos que las direcciones se quedan a la vista en la terminal antes de que
-# MacTV se lleve la pantalla a su escritorio. MACTV_DELAY=0 lo quita.
+# Seconds the addresses stay visible in the terminal before MacTV takes over
+# the screen with its own desktop. MACTV_DELAY=0 skips it.
 LAUNCH_DELAY = float(os.environ.get("MACTV_DELAY", "3"))
 HERE = Path(__file__).resolve().parent
 WEB = HERE / "web"
@@ -88,7 +88,7 @@ STATE = {
 }
 
 # ---------------------------------------------------------------------------
-# Inyeccion de eventos (CoreGraphics via ctypes)
+# Event injection (CoreGraphics via ctypes)
 # ---------------------------------------------------------------------------
 
 _cg = ctypes.CDLL(ctypes.util.find_library("ApplicationServices"))
@@ -191,7 +191,7 @@ def mouse_move(dx, dy):
 
 
 def click_at(x, y):
-    """Clic en un punto concreto de la pantalla."""
+    """Click at a specific point on the screen."""
     pt = CGPoint(float(x), float(y))
     with _input_lock:
         ev = _cg.CGEventCreateMouseEvent(None, MOUSE_MOVED, pt, 0)
@@ -219,7 +219,7 @@ def mouse_scroll(dy, dx=0):
 
 
 # ---------------------------------------------------------------------------
-# Utilidades
+# Utilities
 # ---------------------------------------------------------------------------
 
 def osa(script, lang="AppleScript", timeout=12):
@@ -259,7 +259,7 @@ def browser_bundle():
 
 
 def local_addresses():
-    """Todas las IPv4 del equipo, la principal primero."""
+    """All the machine's IPv4 addresses, main one first."""
     try:
         out = subprocess.run(["ifconfig"], capture_output=True, text=True,
                              timeout=6).stdout
@@ -308,7 +308,7 @@ _typing = {"at": 0.0, "value": False}
 
 
 def typing_now():
-    """True si la app en primer plano tiene el foco en un campo de texto."""
+    """True if the frontmost app has focus on a text field."""
     now = time.time()
     if now - _typing["at"] < 1.0:
         return _typing["value"]
@@ -327,20 +327,20 @@ def typing_now():
 
 
 # ---------------------------------------------------------------------------
-# Ventanas
+# Windows
 #
-# La accesibilidad sola no basta: cuando una ventana pasa a pantalla completa
-# System Events deja de contarla, y las apps web del navegador (Netflix,
-# YouTube...) no son procesos propios sino ventanas del navegador, asi que
-# "la ventana frontal de Brave" puede ser cualquier pestaña del usuario.
+# Accessibility alone isn't enough: once a window goes full screen, System
+# Events stops counting it, and the browser's web apps (Netflix, YouTube...)
+# aren't their own processes but windows of the browser, so "Brave's front
+# window" could be any tab the user has open.
 #
-# Por eso se usa la lista de ventanas de CoreGraphics, que da identificador,
-# PID y marco exacto de cada ventana, y luego se apunta a la ventana concreta
-# por su marco.
+# That's why it uses CoreGraphics' window list instead, which gives the
+# identifier, PID and exact frame of every window, and then targets the
+# specific window by its frame.
 # ---------------------------------------------------------------------------
 
-# 16 = excluir elementos del escritorio; +1 = solo las que estan en pantalla,
-# es decir, solo las del escritorio activo.
+# 16 = exclude desktop elements; +1 = only the ones on screen, i.e. only the
+# ones on the active desktop.
 WINLIST_JXA = r"""
 ObjC.import("CoreGraphics"); ObjC.import("Foundation"); ObjC.import("AppKit");
 var scr = $.NSScreen.mainScreen.frame;
@@ -367,10 +367,10 @@ W_ID, W_PID, W_X, W_Y, W_W, W_H = range(6)
 
 
 def window_snapshot(onscreen=False):
-    """((ancho, alto) de la pantalla, [ventanas]).
+    """((width, height) of the screen, [windows]).
 
-    Con `onscreen` solo devuelve las del escritorio activo, que es como se sabe
-    en que escritorio estamos.
+    With `onscreen` it only returns the ones on the active desktop, which is
+    how we know which desktop we're on.
     """
     try:
         js = WINLIST_JXA.replace("OPTS", "17" if onscreen else "16")
@@ -422,11 +422,12 @@ def focused_frame(pid):
 
 
 def match_window(wins, pid, frame, tol=24, wy=1.0):
-    """La ventana de `wins` de ese proceso cuyo marco mas se parece a `frame`.
+    """The window in `wins` belonging to that process whose frame is closest
+    to `frame`.
 
-    `wy` pesa menos las diferencias verticales: un navegador a pantalla completa
-    dice que ocupa toda la altura, mientras el sistema descuenta la barra de
-    menus, asi que la anchura es la pista fiable.
+    `wy` weighs vertical differences less: a full-screen browser reports
+    taking up the whole height, while the system subtracts the menu bar, so
+    width is the reliable signal.
     """
     best, dist = None, 1e9
     for w in wins:
@@ -440,7 +441,7 @@ def match_window(wins, pid, frame, tol=24, wy=1.0):
 
 
 def focused_window(pid):
-    """La ventana con el foco de ese proceso, como entrada de la lista CG."""
+    """The focused window of that process, as an entry from the CG list."""
     fr = focused_frame(pid)
     if not fr:
         return None
@@ -448,10 +449,10 @@ def focused_window(pid):
 
 
 def window_action(pid, win, body, tol=12):
-    """Ejecuta `body` sobre LA ventana de ese proceso cuyo marco coincide.
+    """Runs `body` on THE window of that process whose frame matches.
 
-    Actuar sobre "la ventana frontal" no vale: el lanzador y las apps web son
-    ventanas del mismo navegador y acabas tocando una pestaña cualquiera.
+    Acting on "the front window" doesn't work: the launcher and the web apps
+    are windows of the same browser, and you end up touching a random tab.
     """
     return osa(f'''
     tell application "System Events"
@@ -490,14 +491,14 @@ def activate_pid(pid):
 
 
 def raise_and_activate(pid, win):
-    """Pone esa ventana delante y su app al frente, en ese orden."""
+    """Brings that window to the front and activates its app, in that order."""
     window_action(pid, win, 'perform action "AXRaise" of w')
     return activate_pid(pid)
 
 
 def hide_pid(pid):
-    """Esconde esa app (Cmd+H). Si estaba a pantalla completa macOS sale de su
-    escritorio, que es justo lo que hace falta para volver al de MacTV."""
+    """Hides that app (Cmd+H). If it was full screen, macOS leaves its
+    desktop, which is exactly what's needed to get back to MacTV's."""
     if not pid:
         return False
     return osa(f'''
@@ -512,11 +513,11 @@ def hide_pid(pid):
 
 
 def make_fullscreen(pid, win, before, alive=lambda: True):
-    """Pone a pantalla completa la ventana que la app acaba de abrir.
+    """Makes full screen the window the app just opened.
 
-    En macOS pantalla completa es, justamente, un escritorio propio. El
-    resultado se confirma MIDIENDO el marco: estando en pantalla completa la
-    accesibilidad deja de ver la ventana, asi que preguntarle no sirve.
+    On macOS, full screen is, precisely, its own desktop. The result is
+    confirmed by MEASURING the frame: once in full screen, accessibility
+    stops seeing the window, so asking it doesn't work.
     """
     def look():
         scr, wins = window_snapshot()
@@ -531,11 +532,11 @@ def make_fullscreen(pid, win, before, alive=lambda: True):
     if cur is None:
         return False
 
-    # 1. la ventana delante y su app activa
+    # 1. window to the front, its app active
     raise_and_activate(pid, cur)
     time.sleep(0.7)
 
-    # 2. pantalla completa sobre esa misma ventana
+    # 2. full screen on that same window
     for _ in range(2):
         if not alive():
             return False
@@ -553,8 +554,8 @@ def make_fullscreen(pid, win, before, alive=lambda: True):
             if look()[1]:
                 return True
 
-    # 3. plan B: el atajo del sistema, solo si la app esta delante y la ventana
-    #    con el foco es de verdad la nuestra
+    # 3. plan B: the system shortcut, only if the app is in front and the
+    #    focused window really is ours
     if not alive() or frontmost_pid() != pid:
         return False
     fw = focused_window(pid)
@@ -572,11 +573,11 @@ def make_fullscreen(pid, win, before, alive=lambda: True):
 
 def wait_for_window(owner_bundle, before, timeout=18, alive=lambda: True,
                     prefer_pids=None):
-    """Espera a que aparezca una ventana nueva de ese bundle.
+    """Waits for a new window of that bundle to appear.
 
-    `prefer_pids` permite quedarse solo con las de procesos concretos: el
-    lanzador arranca su propia instancia del navegador, y asi no se confunde
-    con una ventana que el usuario abra a la vez en la suya.
+    `prefer_pids` lets you keep only the ones from specific processes: the
+    launcher starts its own browser instance, so it isn't mixed up with a
+    window the user opens at the same time in theirs.
     """
     deadline = time.time() + timeout
     while time.time() < deadline and alive():
@@ -593,7 +594,7 @@ def wait_for_window(owner_bundle, before, timeout=18, alive=lambda: True,
 
 
 # ---------------------------------------------------------------------------
-# Configuracion
+# Config
 # ---------------------------------------------------------------------------
 
 def load_config():
@@ -624,7 +625,7 @@ def save_config():
 
 
 # ---------------------------------------------------------------------------
-# Apps e iconos
+# Apps and icons
 # ---------------------------------------------------------------------------
 
 def slug(s):
@@ -696,7 +697,7 @@ def build_icons(apps, log=print):
             for a in apps if not (ICONS / (a["id"] + ".png")).exists()]
     if not todo:
         return
-    log(f"  extrayendo {len(todo)} iconos (solo la primera vez)...", flush=True)
+    log(f"  extracting {len(todo)} icons (first run only)...", flush=True)
     jobs = CACHE / "iconjobs.json"
     raw = CACHE / "raw"
     raw.mkdir(exist_ok=True)
@@ -717,13 +718,13 @@ def build_icons(apps, log=print):
         pr.wait()
     subprocess.run(["rm", "-rf", str(raw)], capture_output=True)
     jobs.unlink(missing_ok=True)
-    log(f"  iconos listos: "
+    log(f"  icons ready: "
         f"{sum(1 for a in apps if (ICONS / (a['id'] + '.png')).exists())}/{len(apps)}",
         flush=True)
 
 
 # ---------------------------------------------------------------------------
-# Temporizador de suspension
+# Sleep timer
 # ---------------------------------------------------------------------------
 
 def sleep_status():
@@ -753,7 +754,7 @@ def cancel_sleep():
 
 
 def schedule_sleep(minutes):
-    """Proceso aparte, para que sobreviva aunque se cierre MacTV."""
+    """Separate process, so it survives even if MacTV is closed."""
     cancel_sleep()
     minutes = int(minutes)
     if minutes <= 0:
@@ -769,26 +770,26 @@ def schedule_sleep(minutes):
 
 
 # ---------------------------------------------------------------------------
-# Lanzar apps y volver a MacTV
+# Launching apps and returning to MacTV
 # ---------------------------------------------------------------------------
 
 _launch = {"token": 0}
 
-# Banderas con las que SI se consigue pantalla completa de verdad (comprobado):
-# --start-fullscreen solo lo respeta el proceso que crea la ventana, por eso
-# cada app se abre en su propia instancia del navegador.
+# Flags that actually get real full screen (verified):
+# --start-fullscreen is only honored by the process that creates the window,
+# which is why each app opens in its own browser instance.
 BROWSER_FLAGS = ["--start-fullscreen", "--no-first-run", "--no-default-browser-check"]
 
 
 def on_this_desktop(pid):
-    """¿Hay alguna ventana de ese proceso en el escritorio que estoy viendo?"""
+    """Is there a window of that process on the desktop I'm currently viewing?"""
     if not pid:
         return False
     return any(w[W_PID] == pid for w in window_snapshot(onscreen=True)[1])
 
 
 def launcher_fullscreen(pid=None):
-    """¿Esta MacTV a pantalla completa, o sea, en su propio escritorio?"""
+    """Is MacTV full screen, i.e. on its own desktop?"""
     pid = pid or STATE.get("launcher_pid")
     if not pid:
         return False
@@ -797,18 +798,18 @@ def launcher_fullscreen(pid=None):
 
 
 def goto_desktop():
-    """Va al escritorio donde esta MacTV.
+    """Goes to the desktop where MacTV is.
 
-    Con MacTV a pantalla completa su escritorio es solo suyo, y se llega
-    activando su proceso: el lanzador es una instancia propia del navegador,
-    con una unica ventana, asi que activarlo no puede llevar a otro sitio. Lo
-    unico que estorba es venir de una app a pantalla completa, porque macOS se
-    queda en ella; por eso se esconde antes (esconder una app a pantalla
-    completa devuelve al escritorio anterior).
+    With MacTV full screen, its desktop belongs only to it, and you get there
+    by activating its process: the launcher is its own browser instance with
+    a single window, so activating it can't lead anywhere else. The only
+    thing that gets in the way is coming from a full-screen app, because
+    macOS stays on it; that's why it hides it first (hiding a full-screen app
+    returns you to the previous desktop).
 
-    Si el lanzador se quedo sin pantalla completa vive en el escritorio normal,
-    y entonces el camino es el de siempre: activar OTRA aplicacion que este
-    alli, y el Finder siempre lo esta.
+    If the launcher lost full screen it lives on the normal desktop, and then
+    the usual path applies: activate some OTHER app that's there, and the
+    Finder is always there.
     """
     pid = STATE.get("launcher_pid")
     if not pid:
@@ -821,14 +822,14 @@ def goto_desktop():
                 if other != pid and proc_alive(other):
                     hide_pid(other)
             activate_pid(pid)
-            for _ in range(7):             # la animacion tarda casi un segundo
+            for _ in range(7):             # the animation takes almost a second
                 time.sleep(0.4)
                 if on_this_desktop(pid):
                     return True
         return False
     for _ in range(3):
         osa('tell application "Finder" to activate', timeout=8)
-        for _ in range(7):                 # la animacion tarda casi un segundo
+        for _ in range(7):                 # the animation takes almost a second
             time.sleep(0.4)
             if on_this_desktop(pid):
                 return True
@@ -836,15 +837,15 @@ def goto_desktop():
 
 
 def goto_normal_desktop():
-    """Se planta en un escritorio normal (el del Finder) antes de abrir una app.
+    """Lands on a normal desktop (the Finder's) before opening an app.
 
-    --start-fullscreen solo lo aplica macOS si el navegador se lanza desde un
-    escritorio normal, y la accesibilidad solo puede tocar ventanas del
-    escritorio activo. Como MacTV esta a pantalla completa, hay que salir.
+    --start-fullscreen is only applied by macOS if the browser launches from
+    a normal desktop, and accessibility can only touch windows on the active
+    desktop. Since MacTV is full screen, it has to step out first.
     """
     pid = STATE.get("launcher_pid")
     if not launcher_fullscreen(pid):
-        # MacTV ya vive en el escritorio normal: basta con volver a el
+        # MacTV already lives on the normal desktop: just go back to it
         return goto_desktop()
     for _ in range(3):
         osa('tell application "Finder" to activate', timeout=8)
@@ -877,22 +878,22 @@ def proc_alive(pid):
 
 
 def import_session(profile, log=lambda *a: None):
-    """Copia cookies y almacenamiento del Brave del usuario al perfil de la app.
+    """Copies cookies and storage from the user's Brave into the app's profile.
 
-    Asi no hay que volver a iniciar sesion en Netflix y compania. Si algo falla
-    no pasa nada: la app pedira que inicies sesion una vez.
+    That way you don't have to log back into Netflix and friends. If
+    something fails, no harm done: the app will just ask you to log in once.
     """
     src = Path.home() / "Library/Application Support/BraveSoftware/Brave-Browser"
     dst = Path(profile)
     if not src.is_dir():
         return
     try:
-        # Local State NO se copia. En macOS la clave de cifrado de las cookies
-        # vive en el Llavero ("Brave Safe Storage"), no ahi, asi que copiarlo
-        # no aporta nada; y si se copia arrastra "app_shims", el registro de
-        # las apps web del Brave normal. Brave las daria por instaladas en
-        # este perfil, intentaria reconciliar sus .app de ~/Applications y
-        # soltaria un dialogo de error por cada una al arrancar.
+        # Local State is NOT copied. On macOS the cookie encryption key lives
+        # in the Keychain ("Brave Safe Storage"), not there, so copying it
+        # adds nothing; and copying it drags along "app_shims", the registry
+        # of the regular Brave's web apps. Brave would think they're
+        # installed in this profile too, try to reconcile their .app from
+        # ~/Applications, and throw an error dialog for each one on launch.
         for rel in ("Default/Cookies", "Default/Network/Cookies"):
             f = src / rel
             if f.exists():
@@ -908,9 +909,9 @@ def import_session(profile, log=lambda *a: None):
 
 
 def singleton_owner(profile):
-    """PID del navegador que tiene cogido ese perfil, o 0 si no hay nadie.
+    """PID of the browser holding that profile, or 0 if nobody has it.
 
-    Chromium deja SingletonLock como enlace simbolico a "<host>-<pid>".
+    Chromium leaves SingletonLock as a symlink to "<host>-<pid>".
     """
     try:
         target = os.readlink(Path(profile) / "SingletonLock")
@@ -922,22 +923,23 @@ def singleton_owner(profile):
         return 0
     if pid <= 0 or not proc_alive(pid):
         return 0
-    # por si el PID se ha reciclado y ahora es otra cosa cualquiera
+    # in case the PID got recycled and is now something else entirely
     comm = subprocess.run(["ps", "-p", str(pid), "-o", "comm="],
                           capture_output=True, text=True).stdout
     return pid if (browser()[0] or "?") in comm else 0
 
 
 def clear_singleton(profile):
-    """Quita los cerrojos que deja el navegador si se cerro a lo bruto.
+    """Removes the locks the browser leaves behind if it was force-quit.
 
-    Si se quedan, la siguiente vez el proceso arranca y se cierra solo.
+    If they're left behind, next time the process starts up and quits right
+    away.
 
-    Solo se borran si de verdad no hay nadie detras. Borrarlos con el proceso
-    vivo deja dos navegadores sobre el mismo perfil, y entonces el segundo no
-    puede bloquear ninguna base de datos: Chromium suelta un
-    "Se ha producido un error al abrir tu perfil" por cada subsistema que
-    falla. Devuelve False si el perfil esta ocupado.
+    Only removed if nobody's really still behind them. Removing them with
+    the process still alive leaves two browsers on the same profile, and
+    then the second one can't lock any database: Chromium throws a
+    "There was a problem opening your profile" error for every subsystem
+    that fails. Returns False if the profile is busy.
     """
     if singleton_owner(profile):
         return False
@@ -950,7 +952,7 @@ def clear_singleton(profile):
 
 
 def release_profile(profile, timeout=8):
-    """Cierra el navegador que tenga cogido el perfil y espera a que suelte."""
+    """Closes the browser holding the profile and waits for it to let go."""
     pid = singleton_owner(profile)
     if not pid:
         clear_singleton(profile)
@@ -968,14 +970,14 @@ def release_profile(profile, timeout=8):
 
 
 def launch_browser_app(app):
-    """Abre una app web en su propia instancia del navegador, a pantalla
-    completa desde el primer momento (y por tanto en su propio escritorio)."""
+    """Opens a web app in its own browser instance, full screen from the very
+    first moment (and therefore on its own desktop)."""
     name, path = browser()
     if not name:
         return 0
     profile = CACHE / "apps" / app["id"]
-    # Sobrevivio a un MacTV anterior: vuelve a esa ventana. Abrir un segundo
-    # navegador sobre el mismo perfil solo daria errores de perfil.
+    # Survived a previous MacTV: go back to that window. Opening a second
+    # browser on the same profile would just throw profile errors.
     alive = singleton_owner(str(profile))
     if alive:
         activate_pid(alive)
@@ -993,7 +995,7 @@ def launch_browser_app(app):
 
 
 def discover_launcher():
-    """Respaldo: busca el proceso del lanzador por el titulo de su ventana."""
+    """Fallback: finds the launcher process by its window title."""
     out = osa(f'''
     tell application "System Events"
       repeat with p in (every process whose bundle identifier is "{browser_bundle()}")
@@ -1014,8 +1016,8 @@ def discover_launcher():
 
 
 def register_launcher(frame):
-    """La pagina del lanzador dice donde esta su ventana; sirve de respaldo si
-    se perdiera el PID (por ejemplo si el navegador se reinicia)."""
+    """The launcher page reports where its window is; serves as a fallback
+    if the PID were ever lost (for example if the browser restarts)."""
     pid = STATE.get("launcher_pid")
     if pid and proc_alive(pid):
         wins = windows_of(pid)
@@ -1033,16 +1035,16 @@ def register_launcher(frame):
 
 
 def go_home():
-    """Vuelve al escritorio de MacTV sin cerrar nada.
+    """Goes back to MacTV's desktop without closing anything.
 
-    A pantalla completa MacTV tiene escritorio propio y una sola ventana: al
-    llegar ya esta delante y con el foco, no hay nada mas que hacer. Si no lo
-    esta, comparte escritorio con otras ventanas del navegador y hacen falta
-    dos pasos mas: subirla por encima (ya se puede: esta en el escritorio
-    activo) y devolverle el foco del teclado con un clic en su barra de titulo.
-    Activar el navegador por su nombre NO vale: macOS se iria a la ventana que
-    tenga delante, que puede ser la de la app a pantalla completa, y
-    saldriamos del escritorio otra vez.
+    In full screen, MacTV has its own desktop and a single window: once
+    there it's already in front and focused, nothing else to do. If it
+    isn't, it shares the desktop with other browser windows and two more
+    steps are needed: raise it above the rest (already possible: it's on the
+    active desktop) and give it back keyboard focus with a click on its
+    title bar. Activating the browser by name does NOT work: macOS would go
+    to whichever window it has in front, which could be the full-screen
+    app's, and we'd be kicked out of the desktop again.
     """
     pid = STATE.get("launcher_pid") or discover_launcher()
     if not pid:
@@ -1065,8 +1067,8 @@ def go_home():
 
 
 def ensure_fullscreen_later(pid):
-    """Red de seguridad: si la ventana no salio a pantalla completa, se fuerza
-    por accesibilidad (posible, porque esta en el escritorio activo)."""
+    """Safety net: if the window didn't come out full screen, force it via
+    accessibility (possible, because it's on the active desktop)."""
     win = None
     for _ in range(30):
         time.sleep(0.5)
@@ -1086,7 +1088,7 @@ def ensure_fullscreen_later(pid):
 
 
 def supervise(app_id, pid, token, cfg):
-    """Vigila la app: cuando se queda sin ventanas, vuelve a MacTV."""
+    """Watches the app: once it's left with no windows, goes back to MacTV."""
     alive = lambda: _launch["token"] == token
     for _ in range(40):
         if not alive():
@@ -1121,7 +1123,7 @@ def launch_app(app_id):
         return False
     cfg = STATE["cfg"]
 
-    # ya abierta: solo hay que ir a su escritorio
+    # already open: just go to its desktop
     pid = STATE["running"].get(app_id)
     if pid and proc_alive(pid) and windows_of(pid):
         activate_pid(pid)
@@ -1131,8 +1133,8 @@ def launch_app(app_id):
     es_web = bool(app.get("url")) and bbid and app["bundle"].startswith(bbid + ".")
 
     if es_web and cfg.get("fullscreen", True):
-        # --start-fullscreen solo lo aplica macOS si se lanza desde el
-        # escritorio normal; desde un escritorio a pantalla completa lo ignora
+        # --start-fullscreen is only applied by macOS if launched from the
+        # normal desktop; from a full-screen desktop it's silently ignored
         goto_normal_desktop()
         pid = launch_browser_app(app)
         if not pid:
@@ -1140,10 +1142,10 @@ def launch_app(app_id):
         threading.Thread(target=ensure_fullscreen_later,
                          args=(pid,), daemon=True).start()
     else:
-        # app nativa: la abre el sistema. Si acepta pantalla completa se
-        # intenta, pero sin garantias: macOS no deja tocar por accesibilidad
-        # las ventanas que no estan en el escritorio activo, asi que primero
-        # hay que salir del escritorio de MacTV.
+        # native app: the system opens it. If it accepts full screen, it's
+        # attempted, but no guarantees: macOS won't let accessibility touch
+        # windows that aren't on the active desktop, so we have to leave
+        # MacTV's desktop first.
         goto_normal_desktop()
         before = {w[W_ID] for w in window_snapshot()[1]}
         subprocess.run(["open", "-a", app["path"]], capture_output=True)
@@ -1163,7 +1165,7 @@ def launch_app(app_id):
 
 
 # ---------------------------------------------------------------------------
-# Acciones sueltas
+# Standalone actions
 # ---------------------------------------------------------------------------
 
 def set_volume(direction):
@@ -1193,15 +1195,15 @@ def system_action(action):
 
 
 # ---------------------------------------------------------------------------
-# El lanzador
+# The launcher
 # ---------------------------------------------------------------------------
 
 def strip_app_shims(local_state):
-    """Borra el registro de apps web del Local State de un perfil de MacTV.
+    """Strips the web-app registry from a MacTV profile's Local State.
 
-    Si esta ahi (versiones viejas lo copiaban del Brave normal), Brave cree que
-    las PWAs del usuario estan instaladas aqui y saca un dialogo de error por
-    cada una al arrancar.
+    If it's there (older versions copied it from the regular Brave), Brave
+    thinks the user's PWAs are installed here too and throws an error dialog
+    for each one on launch.
     """
     try:
         d = json.loads(local_state.read_text())
@@ -1218,7 +1220,7 @@ def strip_app_shims(local_state):
 
 
 def seed_profile(profile):
-    """Silencia los avisos de primera ejecucion del navegador."""
+    """Silences the browser's first-run notices."""
     root = Path(profile)
     (root / "Default").mkdir(parents=True, exist_ok=True)
     local = root / "Local State"
@@ -1242,29 +1244,30 @@ def seed_profile(profile):
 
 
 def open_launcher(url):
-    """Abre MacTV a pantalla completa en su propio escritorio.
+    """Opens MacTV full screen on its own desktop.
 
-    Se lanza como instancia propia del navegador, asi que su PID es el del
-    proceso que arrancamos: "Menu" puede volver aqui sin ambiguedad.
+    It launches as its own browser instance, so its PID is the one of the
+    process we just started: "Menu" can come back here unambiguously.
     """
     name, path = browser()
     if not name:
         subprocess.Popen(["open", url])
         return
     profile = str(CACHE / "launcher-profile")
-    # Al salir con Ctrl+C el navegador se queda vivo (start_new_session). Ese
-    # lanzador apunta a un servidor que ya no existe, asi que se cierra antes
-    # de abrir el nuevo: si no, dos Braves comparten launcher-profile.
+    # When exiting with Ctrl+C the browser stays alive (start_new_session).
+    # That launcher points at a server that no longer exists, so it's closed
+    # before opening the new one: otherwise two Braves would share
+    # launcher-profile.
     release_profile(profile)
     seed_profile(profile)
     scr, _ = window_snapshot()
     w, h = int(scr[0] or 1440), int(scr[1] or 900)
-    # MacTV a pantalla completa, o sea, en su propio escritorio, igual que las
-    # apps. Antes se quedaba en el normal porque --start-fullscreen no funciona
-    # si el navegador se lanza desde un escritorio a pantalla completa; ahora
-    # eso lo resuelve goto_normal_desktop(), que sale de aqui antes de abrir
-    # cada app. El tamano de ventana sigue puesto como respaldo por si la
-    # pantalla completa no llegara a cuajar.
+    # MacTV full screen, i.e. on its own desktop, just like the apps. It used
+    # to stay on the normal one because --start-fullscreen doesn't work if
+    # the browser launches from a full-screen desktop; now
+    # goto_normal_desktop() handles that, stepping out before opening each
+    # app. The window size is still set as a fallback in case full screen
+    # doesn't land.
     proc = subprocess.Popen(
         [f"{path}/Contents/MacOS/{Path(path).stem}",
          f"--user-data-dir={profile}", f"--app={url}",
@@ -1289,7 +1292,7 @@ def open_launcher(url):
 
 
 # ---------------------------------------------------------------------------
-# Servidor HTTP
+# HTTP server
 # ---------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
@@ -1408,7 +1411,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 # ---------------------------------------------------------------------------
-# Arranque
+# Startup
 # ---------------------------------------------------------------------------
 
 def main():
@@ -1416,9 +1419,9 @@ def main():
     print("\n  \033[1mMacTV\033[0m\n")
 
     if not _cg.AXIsProcessTrusted():
-        print("  \033[33mFalta permiso de Accesibilidad.\033[0m")
-        print("  Ajustes del Sistema > Privacidad y Seguridad > Accesibilidad")
-        print("  y activa la app de terminal que estas usando. Luego reinicia.\n")
+        print("  \033[33mAccessibility permission is missing.\033[0m")
+        print("  System Settings > Privacy & Security > Accessibility")
+        print("  and enable the terminal app you're using. Then restart.\n")
         osa('tell application "System Events" to open location '
             '"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"')
 
@@ -1429,27 +1432,27 @@ def main():
     STATE["sleep_options"] = cfg["sleep_options"]
     STATE["cfg"] = cfg
 
-    print(f"  {len(STATE['featured'])} destacadas  |  {len(STATE['apps'])} apps",
+    print(f"  {len(STATE['featured'])} featured  |  {len(STATE['apps'])} apps",
           flush=True)
 
     srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 
     print(f"\n  TV     ->  http://localhost:{PORT}/")
-    print(f"  \033[1;36mMovil  ->  http://{remote_url()}\033[0m")
+    print(f"  \033[1;36mRemote ->  http://{remote_url()}\033[0m")
     otras = [a for a in local_addresses()][1:]
     if otras:
-        print(f"  (otras direcciones: {', '.join(otras)})")
-    print("\n  Ctrl+C para salir.\n", flush=True)
+        print(f"  (other addresses: {', '.join(otras)})")
+    print("\n  Ctrl+C to quit.\n", flush=True)
 
-    # Los iconos van despues de imprimir: asi lo de arriba se ve desde el
-    # primer momento, no cuando termine la extraccion.
+    # Icons go after printing: so what's above shows up right away, not
+    # only once extraction finishes.
     build_icons(everything)
 
     if "--no-ui" not in sys.argv:
-        # MacTV se abre a pantalla completa, o sea, en su propio escritorio, y
-        # la terminal se queda atras. Esta pausa da tiempo a leer las
-        # direcciones antes de que la pantalla cambie.
+        # MacTV opens full screen, i.e. on its own desktop, and the terminal
+        # is left behind. This pause gives time to read the addresses before
+        # the screen switches.
         time.sleep(LAUNCH_DELAY)
         open_launcher(f"http://localhost:{PORT}/")
 
@@ -1457,7 +1460,7 @@ def main():
         while True:
             time.sleep(3600)
     except KeyboardInterrupt:
-        print("\n  Adios.\n")
+        print("\n  Goodbye.\n")
 
 
 if __name__ == "__main__":
