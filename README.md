@@ -1,4 +1,13 @@
-# MacTV
+<p align="center">
+  <img src="docs/banner.svg" alt="MacTV" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-macOS-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+  <img src="https://img.shields.io/badge/python-3-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+  <img src="https://img.shields.io/badge/dependencias-ninguna-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+  <img src="https://img.shields.io/badge/licencia-MIT-07080b?style=flat-square&labelColor=07080b&color=0a84ff">
+</p>
 
 Convierte el MacBook conectado a la tele en algo parecido a un Apple TV: una
 interfaz gigante navegable con flechas, el móvil como mando a distancia, y
@@ -6,7 +15,9 @@ cada app en su propio escritorio a pantalla completa.
 
 Sin dependencias: solo Python 3 (ya viene en macOS) y el navegador que tienes.
 
-<!-- ![MacTV](docs/screenshot-launcher.png) -->
+<p align="center">
+  <img src="docs/screenshot-launcher.png" alt="Interfaz de la tele" width="85%">
+</p>
 
 ## Índice
 
@@ -151,7 +162,9 @@ Se puede desactivar en `~/.mactv/config.json` (`"fullscreen"`, `"return_home"`).
 
 Una sola pantalla, sin pestañas, con la disposición del mando del Apple TV:
 
-<!-- ![Mando](docs/screenshot-remote.png) -->
+<p align="center">
+  <img src="docs/screenshot-remote.png" alt="El mando en el móvil" width="340">
+</p>
 
 | Zona | Qué hace |
 |------|----------|
