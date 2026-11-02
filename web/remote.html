@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mando MacTV</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MacTV">
+<meta name="theme-color" content="#07080b">
+<style>
+  :root{
+    /* El mando se usa a oscuras: menos luminosidad que la tele y ningun
+       relleno blanco. Lo que confirma la pulsacion es --live, no un destello. */
+    --ink:#07080b;
+    --surface:rgba(255,255,255,.055);
+    --surface-2:rgba(255,255,255,.1);
+    --edge:rgba(255,255,255,.085);
+    --edge-hi:rgba(255,255,255,.2);
+
+    --text:#f3f6fa;
+    --text-2:rgba(228,234,246,.6);
+    --text-3:rgba(228,234,246,.34);
+
+    --live-rgb:10 132 255;             /* "activo, en marcha": un solo sentido */
+    --warn-rgb:255 69 58;
+
+    --ui:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --meta:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+
+    --gap:10px;
+    --pagepad:15px;
+    --btn:clamp(58px,8.4vh,76px);      /* nunca por debajo del objetivo tactil */
+    --ring:clamp(178px,27vh,238px);
+
+    --sh:0 12px 28px -12px rgba(0,0,0,.7);
+    --inner:inset 0 1px 0 rgba(255,255,255,.1);
+    --ease:cubic-bezier(.22,1,.3,1);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none}
+  html,body{height:100%; overscroll-behavior:none}
+  body{
+    background:var(--ink); color:var(--text); overflow:hidden;
+    font-family:var(--ui); font-size:16px; font-weight:600; line-height:1.2;
+    letter-spacing:-.01em; -webkit-font-smoothing:antialiased;
+    height:100dvh; display:flex; flex-direction:column; gap:var(--gap);
+    padding:calc(env(safe-area-inset-top) + 10px) var(--pagepad)
+            calc(env(safe-area-inset-bottom) + 10px);
+  }
+
+  /* Una sola luz, fria y muy baja, para que el mando no ilumine el salon. */
+  .ambient{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+  .ambient i{position:absolute; display:block}
+  .ambient i:nth-child(1){left:-40vw; top:-46vw; width:130vw; height:130vw;
+    background:radial-gradient(closest-side, rgba(58,104,190,.2), transparent 68%)}
+  .ambient i:nth-child(2){right:-36vw; bottom:-38vw; width:110vw; height:110vw;
+    background:radial-gradient(closest-side, rgba(255,168,104,.07), transparent 66%)}
+
+  .ic{fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round;
+      stroke-linejoin:round; display:block; width:24px; height:24px}
+
+  /* --------------------------------------------------------- estado de enlace
+     Silencio cuando todo va bien; claro cuando se corta. */
+  #link{
+    position:relative; z-index:3; flex:0 0 auto; display:none;
+    align-items:center; justify-content:center; gap:.5em;
+    height:34px; border-radius:999px;
+    background:rgb(var(--warn-rgb) / .16); border:1px solid rgb(var(--warn-rgb) / .4);
+    color:#ffb4ae; font-family:var(--meta); font-size:12.5px; font-weight:500;
+    animation:drop .3s var(--ease) both;
+  }
+  #link.on{display:flex}
+  #link .ic{width:15px; height:15px}
+  @keyframes drop{from{opacity:0; transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+  /* ------------------------------------------------------- superficie tactil */
+  #pad{
+    position:relative; z-index:1; flex:1 1 auto; min-height:96px;
+    border-radius:30px; overflow:hidden;
+    background:linear-gradient(162deg, var(--surface-2), var(--surface));
+    border:1px solid var(--edge);
+    backdrop-filter:blur(20px) saturate(160%);
+    -webkit-backdrop-filter:blur(20px) saturate(160%);
+    box-shadow:var(--sh), var(--inner);
+    transition:border-color .16s ease;
+  }
+  #pad.hot{border-color:var(--edge-hi)}
+  /* la luz sigue al dedo: confirma que el puntero esta siguiendo el gesto */
+  #pad .spot{
+    position:absolute; left:0; top:0; width:220px; height:220px; margin:-110px;
+    border-radius:50%; opacity:0; pointer-events:none;
+    background:radial-gradient(closest-side, rgba(255,255,255,.16), transparent 70%);
+    transition:opacity .2s ease;
+  }
+  #pad.hot .spot{opacity:1}
+  #pad .tip{
+    position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
+    width:min(24ch,86%); text-align:center; text-wrap:balance;
+    font-family:var(--meta); font-size:11.5px; font-weight:450; line-height:1.45;
+    color:var(--text-3); transition:opacity .35s ease;
+  }
+  #pad.used .tip{opacity:0}
+
+  /* ---------------------------------------------------------------- cruceta */
+  .dpad{position:relative; z-index:1; flex:0 0 var(--ring); display:grid;
+        place-items:center}
+  .ring{
+    position:relative; width:var(--ring); height:var(--ring); border-radius:50%;
+    background:linear-gradient(162deg, var(--surface-2), var(--surface));
+    border:1px solid var(--edge);
+    backdrop-filter:blur(24px) saturate(165%);
+    -webkit-backdrop-filter:blur(24px) saturate(165%);
+    box-shadow:0 18px 42px -16px rgba(0,0,0,.75), var(--inner);
+  }
+  /* filo interior: el pulgar ve donde acaba la corona y empieza OK */
+  .ring::after{
+    content:""; position:absolute; inset:24.5%; border-radius:50%;
+    border:1px solid rgba(255,255,255,.055); pointer-events:none;
+  }
+  .ring button{
+    position:absolute; border:none; background:transparent; color:var(--text-2);
+    display:grid; place-items:center; border-radius:50%;
+    transition:color .14s ease, background .14s ease;
+  }
+  .ring .up,.ring .down{left:25%; width:50%; height:31%}
+  .ring .left,.ring .right{top:25%; height:50%; width:31%}
+  .ring .up{top:0} .ring .down{bottom:0}
+  .ring .left{left:0} .ring .right{right:0}
+  .ring button .ic{width:30px; height:30px; stroke-width:1.9}
+  .ring button.pressed{color:#fff; background:rgb(var(--live-rgb) / .2)}
+
+  #ok{
+    position:absolute; left:28%; top:28%; width:44%; height:44%;
+    border-radius:50%; border:1px solid var(--edge-hi); color:var(--text);
+    background:linear-gradient(162deg, rgba(255,255,255,.13), rgba(255,255,255,.035));
+    font-family:inherit; font-size:15px; font-weight:700; letter-spacing:.06em;
+    display:grid; place-items:center;
+    box-shadow:0 10px 22px -10px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.16);
+    transition:background .14s ease, box-shadow .2s ease, transform .18s var(--ease);
+    will-change:transform;
+  }
+  #ok.press{background:rgb(var(--live-rgb) / .85); border-color:rgb(var(--live-rgb) / 1);
+            transform:scale(.96)}
+  #ok.stick{background:rgb(var(--live-rgb) / .3); border-color:rgb(var(--live-rgb) / .6);
+            box-shadow:0 0 0 3px rgb(var(--live-rgb) / .28), 0 10px 22px -10px rgba(0,0,0,.7)}
+
+  /* --------------------------------------------------------------- botonera
+     Cada control tiene una silueta distinta para encontrarlo sin mirar:
+     pastilla ancha, pastilla estrecha, balancin alto. */
+  .row{display:flex; gap:var(--gap); flex:0 0 auto}
+  .row.a{height:var(--btn)}
+  .row.b{height:calc(var(--btn) * 2 + var(--gap))}
+  .col{display:flex; flex-direction:column; gap:var(--gap); flex:1 1 0; min-width:0}
+
+  .btn{
+    position:relative; z-index:1; flex:1 1 0; min-width:0; min-height:0;
+    border:1px solid var(--edge); border-radius:999px;
+    background:linear-gradient(162deg, var(--surface-2), var(--surface));
+    backdrop-filter:blur(20px) saturate(160%);
+    -webkit-backdrop-filter:blur(20px) saturate(160%);
+    box-shadow:var(--sh), var(--inner);
+    color:var(--text); display:grid; place-items:center;
+    transition:transform .14s var(--ease), background .14s ease,
+               border-color .14s ease;
+  }
+  .btn > span{display:grid; justify-items:center; gap:5px}
+  .btn .t{font-family:var(--meta); font-size:12px; font-weight:500;
+          color:var(--text-2); max-width:100%; overflow:hidden;
+          text-overflow:ellipsis; white-space:nowrap; transition:color .14s ease}
+  .btn.pressed{transform:scale(.96); background:rgb(var(--live-rgb) / .8);
+            border-color:rgb(var(--live-rgb) / 1)}
+  .btn.pressed .t{color:#fff}
+  /* Cerrar es la accion destructiva: mas estrecha, para no darle por error */
+  .btn.danger{flex:.68 1 0}
+  .btn.danger .ic{color:rgba(255,160,152,.9)}
+  .btn.danger.pressed{background:rgb(211 54 46 / .92); border-color:rgb(var(--warn-rgb) / 1)}
+  .btn.danger.pressed .ic{color:#fff}
+
+  .rocker{
+    position:relative; z-index:1; flex:.62 1 0; min-width:0;
+    display:flex; flex-direction:column;
+    border:1px solid var(--edge); border-radius:34px; overflow:hidden;
+    background:linear-gradient(162deg, var(--surface-2), var(--surface));
+    backdrop-filter:blur(20px) saturate(160%);
+    -webkit-backdrop-filter:blur(20px) saturate(160%);
+    box-shadow:var(--sh), var(--inner);
+  }
+  .rocker button{
+    border:none; background:transparent; color:var(--text);
+    display:grid; place-items:center; transition:background .14s, color .14s;
+  }
+  .rocker .vup,.rocker .vdown{flex:1 1 0}
+  .rocker .vmute{flex:0 0 46px;
+                 border-top:1px solid var(--edge); border-bottom:1px solid var(--edge)}
+  .rocker button.pressed{background:rgb(var(--live-rgb) / .8); color:#fff}
+  .rocker .vmute .ic{width:22px; height:22px; color:var(--text-2)}
+
+  /* ---------------------------------------------------------------- escribir */
+  #kbBar{
+    position:relative; z-index:2; flex:0 0 auto; display:none;
+    align-items:center; gap:11px; padding:0 16px; height:50px; border-radius:18px;
+    background:rgb(var(--live-rgb) / .18); border:1px solid rgb(var(--live-rgb) / .42);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    color:#cfe3ff; font-family:var(--meta); font-size:13px; font-weight:500;
+    line-height:1.3; animation:drop .26s var(--ease) both;
+  }
+  #kbBar.on{display:flex}
+  #kbBar .ic{width:20px; height:20px; flex:0 0 auto}
+  #kbBar .go{margin-left:auto; flex:0 0 auto; font-weight:600; color:#fff;
+             opacity:.9; white-space:nowrap}
+
+  #kbPanel{position:fixed; inset:0; z-index:90; display:none;
+           flex-direction:column; background:rgba(4,5,8,.7);
+           backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px)}
+  #kbPanel.on{display:flex; animation:veil .2s ease both}
+  @keyframes veil{from{opacity:0}to{opacity:1}}
+  .kbCard{
+    margin:calc(env(safe-area-inset-top) + 14px) var(--pagepad) 0;
+    padding:16px; border-radius:26px;
+    background:rgba(18,20,27,.95); border:1px solid var(--edge-hi);
+    box-shadow:0 28px 60px -24px rgba(0,0,0,.85), var(--inner);
+    animation:rise-in .28s var(--ease) both;
+  }
+  @keyframes rise-in{from{opacity:0; transform:translateY(-14px) scale(.98)}
+                     to{opacity:1; transform:none}}
+  .kbCard h4{display:flex; align-items:center; gap:8px; margin-bottom:12px;
+             font-size:14.5px; font-weight:650; letter-spacing:-.02em;
+             color:var(--text)}
+  .kbCard h4 .ic{width:18px; height:18px; color:var(--text-2)}
+  #field{
+    width:100%; height:54px; padding:0 16px; font-family:inherit;
+    font-size:17px; font-weight:600; color:var(--text);
+    background:rgba(255,255,255,.05); border:1px solid rgb(var(--live-rgb) / .7);
+    border-radius:16px; outline:none;
+    box-shadow:0 0 0 4px rgb(var(--live-rgb) / .16);
+  }
+  #field::placeholder{color:var(--text-3); font-weight:500}
+  .kbRow{display:flex; gap:var(--gap); margin-top:12px}
+  .kbRow button{flex:1 1 0; height:52px; border:1px solid var(--edge);
+                border-radius:16px; background:var(--surface); color:var(--text-2);
+                display:grid; place-items:center; transition:background .14s, color .14s}
+  .kbRow button.pressed{background:rgb(var(--live-rgb) / .8); color:#fff}
+  .kbRow .ic{width:21px; height:21px}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;
+      animation-iteration-count:1 !important; transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+ <g id="ic-up"><path d="M5.6 14.4 12 8l6.4 6.4"/></g>
+ <g id="ic-down"><path d="M5.6 9.6 12 16l6.4-6.4"/></g>
+ <g id="ic-left"><path d="M14.4 5.6 8 12l6.4 6.4"/></g>
+ <g id="ic-right"><path d="M9.6 5.6 16 12l-6.4 6.4"/></g>
+ <g id="ic-mark"><rect x="2.6" y="4.4" width="18.8" height="13.4" rx="3.2"/><path d="M8.6 21h6.8"/></g>
+ <g id="ic-close"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4"/></g>
+ <g id="ic-return"><path d="M4.8 8.6h10.6a4.6 4.6 0 0 1 0 9.2H9.6"/><path d="m8.4 4.4-3.6 4.2 3.6 4.2"/></g>
+ <g id="ic-playpause"><path d="M4 5.8 11 10.5 4 15.2z"/><path d="M14.8 5.8v9.4M19.4 5.8v9.4"/></g>
+ <g id="ic-plus"><path d="M12 5.6v12.8M5.6 12h12.8"/></g>
+ <g id="ic-minus"><path d="M5.6 12h12.8"/></g>
+ <g id="ic-vol-mute"><path d="M3.8 9.4h3l4.4-4v13.2l-4.4-4h-3z"/><path d="m15.6 9.6 4.6 4.8M20.2 9.6l-4.6 4.8"/></g>
+ <g id="ic-keyboard"><rect x="2.6" y="5.6" width="18.8" height="12.8" rx="2.8"/><path d="M6.2 9.2h.01M9.6 9.2h.01M13 9.2h.01M16.4 9.2h.01M18.6 9.2h.01M6.2 12.4h.01M9.6 12.4h.01M13 12.4h.01M16.4 12.4h.01M18.6 12.4h.01M8.2 15.6h7.6"/></g>
+ <g id="ic-send"><path d="M20 6v5.4a2.6 2.6 0 0 1-2.6 2.6H4.6"/><path d="m8.8 10-4.2 4 4.2 4"/></g>
+ <g id="ic-backspace"><path d="M9.4 5.8H19a1.8 1.8 0 0 1 1.8 1.8v8.8A1.8 1.8 0 0 1 19 18.2H9.4L3.2 12z"/><path d="m12.8 9.8 4.2 4.4M17 9.8l-4.2 4.4"/></g>
+ <g id="ic-offline"><path d="M12 19.4h.01"/><path d="M8.4 15.6a5 5 0 0 1 7.2 0"/><path d="M4.8 11.8a10 10 0 0 1 14.4 0"/><path d="m3.4 3.4 17.2 17.2"/></g>
+</defs></svg>
+
+<div class="ambient" aria-hidden="true"><i></i><i></i></div>
+
+<div id="link" role="status">
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-offline"/></svg>
+  <span>Sin conexión con el Mac</span>
+</div>
+
+<div id="kbBar" role="status">
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keyboard"/></svg>
+  <span>Hay un campo de texto abierto</span>
+  <span class="go">Toca para escribir</span>
+</div>
+
+<div id="pad" role="application" aria-label="Superficie táctil">
+  <div class="spot" aria-hidden="true"></div>
+  <p class="tip">Desliza para mover el puntero. Toca para hacer clic, dos dedos para desplazar.</p>
+</div>
+
+<div class="dpad">
+  <div class="ring">
+    <button class="up"    data-k="up"    aria-label="Arriba"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-up"/></svg></button>
+    <button class="down"  data-k="down"  aria-label="Abajo"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-down"/></svg></button>
+    <button class="left"  data-k="left"  aria-label="Izquierda"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-left"/></svg></button>
+    <button class="right" data-k="right" aria-label="Derecha"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-right"/></svg></button>
+    <button id="ok" aria-label="Aceptar">OK</button>
+  </div>
+</div>
+
+<div class="row a">
+  <button class="btn" data-home aria-label="Volver a MacTV"><span>
+    <svg class="ic" viewBox="0 0 24 24"><use href="#ic-mark"/></svg>
+    <span class="t">MacTV</span></span></button>
+  <button class="btn danger" data-sys="quitapp" aria-label="Cerrar la app de delante"><span>
+    <svg class="ic" viewBox="0 0 24 24"><use href="#ic-close"/></svg>
+    <span class="t">Cerrar</span></span></button>
+</div>
+
+<div class="row b">
+  <div class="col">
+    <button class="btn" data-k="esc" aria-label="Atrás"><span>
+      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-return"/></svg>
+      <span class="t">Atrás</span></span></button>
+    <button class="btn" data-k="space" aria-label="Reproducir o pausar"><span>
+      <svg class="ic" viewBox="0 0 24 24"><use href="#ic-playpause"/></svg>
+      <span class="t">Play / Pausa</span></span></button>
+  </div>
+  <div class="rocker">
+    <button class="vup"   data-vol="up"   aria-label="Subir volumen"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-plus"/></svg></button>
+    <button class="vmute" data-vol="mute" aria-label="Silenciar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-vol-mute"/></svg></button>
+    <button class="vdown" data-vol="down" aria-label="Bajar volumen"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-minus"/></svg></button>
+  </div>
+</div>
+
+<div id="kbPanel" role="dialog" aria-modal="true" aria-labelledby="kbTitle">
+  <div class="kbCard">
+    <h4 id="kbTitle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keyboard"/></svg>
+        Escribir en el Mac</h4>
+    <input id="field" placeholder="Lo que escribas aparece en el Mac"
+           autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
+    <div class="kbRow">
+      <button data-kb="back" aria-label="Borrar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-backspace"/></svg></button>
+      <button data-kb="send" aria-label="Enviar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-send"/></svg></button>
+      <button data-kb="hide" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24"><use href="#ic-close"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<script src="/ui.js"></script>
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+/* sonido y vibracion viven en /ui.js, compartidos con la tele */
+const fb = k => MacTV.feedback(k);
+
+/* ---------- sensibilidad ----------
+   El puntero acelera segun lo rapido que muevas el dedo: despacio es preciso,
+   rapido cruza la pantalla de un tiron. Son las mismas ideas que usa macOS. */
+const ACC = {
+  base: 1.0,     // ganancia a velocidad cero (precision)
+  k:    3.6,     // cuanto acelera
+  exp:  1.15,    // curvatura
+  max:  12,      // tope
+  smooth: .45,   // suavizado de la velocidad medida (0 = nada)
+};
+const STICK = {
+  dead: 9,       // px muertos alrededor del centro
+  span: 80,      // px hasta la velocidad maxima
+  exp:  2.0,     // curva: suave cerca del centro
+  max:  58,      // px de scroll por tic
+  tick: 55,      // ms entre tics
+};
+
+let failures = 0;
+function post(path, body){
+  return fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
+                      body: JSON.stringify(body||{}), keepalive:true})
+    .then(r => { failures = 0; $("#link").classList.remove("on"); return r; })
+    .catch(() => { if (++failures > 1) $("#link").classList.add("on"); });
+}
+const key = (k, mods) => post("/api/key", {key:k, mods:mods});
+
+/* pulsacion, con repeticion al mantener.
+   El estado "down" lo pone el JS y no :active, para que sobreviva al
+   arrastre del dedo y para que la repeticion tambien se note. */
+function bind(el, fn, cue="press"){
+  /* En iOS el gesto tiene que aterrizar sobre un <input switch> real o no hay
+     tic (ver ui.js). MacTV.surface() devuelve ese switch superpuesto al boton;
+     en Android y escritorio devuelve el boton tal cual. */
+  const surf = MacTV.surface ? MacTV.surface(el) : el;
+  const native = surf === el;
+  let timer, rep;
+  const start = e => {
+    /* Con switch superpuesto no se puede cancelar el gesto: el tic sale del
+       control al activarse, y preventDefault lo aborta. El zoom por doble
+       toque ya lo corta touch-action:manipulation en la propia superficie. */
+    if (native) e.preventDefault();
+    el.classList.add("pressed");
+    fb(cue); fn();
+    timer = setTimeout(() => { rep = setInterval(() => { MacTV.feedback("tick"); fn(); }, 110); }, 420);
+  };
+  const stop = () => {
+    clearTimeout(timer); clearInterval(rep);
+    el.classList.remove("pressed");
+  };
+  surf.addEventListener("touchstart", start, {passive:native ? false : true});
+  ["touchend","touchcancel"].forEach(t => surf.addEventListener(t, stop));
+  surf.addEventListener("mousedown", start);
+  ["mouseup","mouseleave"].forEach(t => surf.addEventListener(t, stop));
+}
+$$(".ring [data-k]").forEach(el => bind(el, () => key(el.dataset.k), "nav"));
+$$(".btn[data-k]").forEach(el => bind(el, () => key(el.dataset.k),
+                                      el.dataset.k === "esc" ? "back" : "press"));
+$$("[data-vol]").forEach(el => bind(el, () => post("/api/volume", {dir:el.dataset.vol}), "tick"));
+$$("[data-sys]").forEach(el => bind(el, () => post("/api/system", {action:el.dataset.sys}), "confirm"));
+$$("[data-home]").forEach(el => bind(el, () => post("/api/home"), "confirm"));
+
+/* ---------- superficie tactil, con aceleracion ---------- */
+(function(){
+  const pad = $("#pad"), spot = $(".spot", pad);
+  let x = 0, y = 0, t = 0, moved = 0, t0 = 0, two = false, v = 0, box = null;
+  let q = {dx:0, dy:0}, sending = false;
+  let used = false;
+  try { used = localStorage.getItem("mactv.padUsed") === "1"; } catch(e){}
+  if (used) pad.classList.add("used");
+
+  function flush(){
+    if (sending || (!Math.round(q.dx) && !Math.round(q.dy))) return;
+    sending = true;
+    const body = {dx: q.dx, dy: q.dy}; q = {dx:0, dy:0};
+    post("/api/mouse", body).finally(() => { sending = false; flush(); });
+  }
+  function gain(speed){
+    return Math.min(ACC.max, ACC.base + ACC.k * Math.pow(speed, ACC.exp));
+  }
+  function light(px, py){
+    if (!box) return;
+    spot.style.transform = `translate3d(${px - box.left}px, ${py - box.top}px, 0)`;
+  }
+
+  pad.addEventListener("touchstart", e => {
+    e.preventDefault(); pad.classList.add("hot");
+    box = pad.getBoundingClientRect();
+    const p = e.touches[0];
+    x = p.clientX; y = p.clientY; t = performance.now();
+    moved = 0; t0 = Date.now(); two = e.touches.length > 1; v = 0;
+    light(x, y);
+    if (!used){
+      used = true; pad.classList.add("used");
+      try { localStorage.setItem("mactv.padUsed", "1"); } catch(e){}
+    }
+  }, {passive:false});
+
+  pad.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const p = e.touches[0];
+    const now = performance.now();
+    const dt = Math.max(6, now - t);
+    const dx = p.clientX - x, dy = p.clientY - y;
+    x = p.clientX; y = p.clientY; t = now;
+    moved += Math.abs(dx) + Math.abs(dy);
+    light(x, y);
+
+    const inst = Math.hypot(dx, dy) / dt;              // px/ms
+    v = v * ACC.smooth + inst * (1 - ACC.smooth);      // suavizado
+
+    if (e.touches.length > 1){
+      two = true;
+      post("/api/mouse", {scroll: Math.round(dy * (1.1 + v))});
+    } else {
+      const g = gain(v);
+      q.dx += dx * g; q.dy += dy * g;
+      flush();
+    }
+  }, {passive:false});
+
+  pad.addEventListener("touchend", e => {
+    e.preventDefault(); pad.classList.remove("hot");
+    if (!two && moved < 12 && Date.now() - t0 < 300){
+      fb("press"); post("/api/mouse", {click:"left"});
+    }
+    two = false;
+  }, {passive:false});
+  pad.addEventListener("touchcancel", () => { pad.classList.remove("hot"); two = false; });
+})();
+
+/* ---------- OK: pulsar, o arrastrar como joystick ---------- */
+(function(){
+  const ok = $("#ok");
+  let sx = 0, sy = 0, dx = 0, dy = 0, stick = false, loop = null;
+
+  function begin(px, py){
+    sx = px; sy = py; dx = dy = 0; stick = false;
+    ok.classList.add("press");
+  }
+  function drag(px, py){
+    dx = px - sx; dy = py - sy;
+    const mag = Math.hypot(dx, dy);
+    if (!stick && mag > STICK.dead){
+      stick = true;
+      ok.classList.replace("press", "stick");
+      MacTV.haptic("nav");
+      loop = setInterval(tick, STICK.tick);
+    }
+    if (stick){
+      const k = Math.min(1, mag / STICK.span) * 9;      // el boton se inclina
+      ok.style.transform = `translate(${dx / mag * k || 0}px, ${dy / mag * k || 0}px)`;
+    }
+  }
+  function tick(){
+    const mag = Math.hypot(dx, dy);
+    if (mag <= STICK.dead) return;
+    const r = Math.min(1, (mag - STICK.dead) / (STICK.span - STICK.dead));
+    const speed = Math.pow(r, STICK.exp) * STICK.max;
+    // empujar hacia abajo baja por la pagina, como un joystick
+    post("/api/mouse", {scroll: Math.round(-dy / mag * speed),
+                        scrollx: Math.round(-dx / mag * speed)});
+  }
+  function end(){
+    clearInterval(loop); loop = null;
+    ok.style.transform = "";
+    const wasStick = stick;
+    ok.classList.remove("press", "stick");
+    stick = false;
+    if (!wasStick){ fb("select"); key("enter"); }
+  }
+
+  ok.addEventListener("touchstart", e => {
+    e.preventDefault(); const p = e.touches[0]; begin(p.clientX, p.clientY);
+  }, {passive:false});
+  ok.addEventListener("touchmove", e => {
+    e.preventDefault(); const p = e.touches[0]; drag(p.clientX, p.clientY);
+  }, {passive:false});
+  ["touchend","touchcancel"].forEach(ev =>
+    ok.addEventListener(ev, e => { e.preventDefault(); end(); }, {passive:false}));
+  ok.addEventListener("mousedown", e => begin(e.clientX, e.clientY));
+  ok.addEventListener("mousemove", e => {
+    if (ok.classList.contains("press") || ok.classList.contains("stick"))
+      drag(e.clientX, e.clientY);
+  });
+  ["mouseup","mouseleave"].forEach(ev => ok.addEventListener(ev, () => {
+    if (ok.classList.contains("press") || ok.classList.contains("stick")) end();
+  }));
+})();
+
+/* ---------- escritura ---------- */
+const field = $("#field"), panel = $("#kbPanel"), bar = $("#kbBar");
+let last = "", kbOpen = false;
+
+function openKb(){
+  kbOpen = true; panel.classList.add("on"); bar.classList.remove("on");
+  field.value = ""; last = ""; field.focus();
+}
+function closeKb(){ kbOpen = false; panel.classList.remove("on"); field.blur(); }
+
+bar.addEventListener("click", () => { fb("sheet"); openKb(); });
+/* un toque visible tambien en los botones del panel */
+function tapFx(el, cue, fn){
+  el.addEventListener("pointerdown", () => el.classList.add("pressed"));
+  ["pointerup","pointercancel","pointerleave"].forEach(t =>
+    el.addEventListener(t, () => el.classList.remove("pressed")));
+  el.addEventListener("click", () => { fb(cue); fn(); });
+}
+tapFx($("[data-kb='hide']"), "close", closeKb);
+tapFx($("[data-kb='back']"), "press", () => key("backspace"));
+tapFx($("[data-kb='send']"), "confirm", () => { key("enter"); field.value = ""; last = ""; });
+
+field.addEventListener("input", e => {
+  const v = e.target.value;
+  if (v.length > last.length && v.startsWith(last)) post("/api/text", {text: v.slice(last.length)});
+  else if (v.length < last.length && last.startsWith(v))
+    for (let i = 0; i < last.length - v.length; i++) key("backspace");
+  else {
+    for (let i = 0; i < last.length; i++) key("backspace");
+    if (v) post("/api/text", {text: v});
+  }
+  last = v;
+});
+field.addEventListener("keydown", e => {
+  if (e.key === "Enter"){ e.preventDefault(); fb("confirm"); key("enter");
+                          e.target.value = ""; last = ""; }
+});
+
+/* el Mac avisa cuando hay un campo de texto con el foco */
+let typing = false, armed = null;
+function armNextTouch(){
+  if (armed) return;
+  armed = () => {
+    document.removeEventListener("touchstart", armed, true);
+    armed = null;
+    if (typing && !kbOpen) openKb();
+  };
+  document.addEventListener("touchstart", armed, true);
+}
+function poll(){
+  fetch("/api/state").then(r => r.json()).then(d => {
+    failures = 0; $("#link").classList.remove("on");
+    if (d.typing === typing) return;
+    typing = d.typing;
+    if (typing && !kbOpen){
+      bar.classList.add("on");
+      MacTV.haptic("sheet");
+      // iOS solo abre el teclado dentro de un gesto; si lo bloquea, lo abre
+      // el siguiente toque en cualquier parte del mando
+      field.focus();
+      if (document.activeElement === field) openKb(); else armNextTouch();
+    } else if (!typing){
+      bar.classList.remove("on");
+      if (kbOpen) closeKb();
+    }
+  }).catch(() => { if (++failures > 1) $("#link").classList.add("on"); });
+}
+setInterval(poll, 1200);
+poll();
+
+document.addEventListener("touchmove", e => {
+  if (!e.target.closest("#kbPanel")) e.preventDefault();
+}, {passive:false});
+</script>
+</body>
+</html>

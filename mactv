@@ -1,0 +1,5 @@
+#!/bin/bash
+# Arranca MacTV. Uso:  ./mactv        (abre la interfaz en la tele)
+#                      ./mactv --no-ui (solo servidor + mando)
+cd "$(dirname "$0")"
+exec python3 mactv.py "$@"

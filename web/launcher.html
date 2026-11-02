@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MacTV</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080b">
+<style>
+  :root{
+    /* ---- tinta y superficies: la pantalla apagada como punto de partida ---- */
+    --ink:#07080b;
+    --surface:rgba(255,255,255,.055);
+    --surface-2:rgba(255,255,255,.085);
+    --chrome:rgba(14,16,22,.66);
+    --edge:rgba(255,255,255,.085);
+    --edge-hi:rgba(255,255,255,.2);
+
+    --text:#f4f6fa;
+    --text-2:rgba(228,234,246,.62);
+    --text-3:rgba(228,234,246,.36);
+
+    /* un solo sentido por color: --live es "activo, en marcha" */
+    --live-rgb:10 132 255;
+    --warn-rgb:255 69 58;
+    --amb-x:50vw; --amb-y:38vh;        /* la luz ambiente sigue al foco */
+
+    /* ---- ritmo ---- */
+    --gutter:clamp(40px,4.4vw,104px);
+    --bar:clamp(64px,7.4vh,88px);
+    --inset:clamp(14px,1.8vh,24px);
+    --tile-feat:clamp(148px,12vw,220px);
+    --tile-app:clamp(98px,7.6vw,140px);
+    --label:1.9em;
+
+    /* ---- tipografia: SF Pro Rounded, la familia de tvOS ---- */
+    --ui:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --meta:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    --t-display:clamp(25px,2.05vw,40px);
+    --t-head:clamp(19px,1.5vw,28px);
+    --t-label:clamp(14px,1.05vw,20px);
+    --t-meta:clamp(13px,.92vw,17px);
+
+    /* ---- forma ---- */
+    --r-card:clamp(22px,2vw,32px);
+    --r-chip:14px;
+    --sh-1:0 10px 26px -10px rgba(0,0,0,.65);
+    --sh-2:0 30px 64px -20px rgba(0,0,0,.8);
+    --ease:cubic-bezier(.22,1,.3,1);
+    --fast:150ms;
+    --base:230ms;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{
+    overflow-x:hidden; scroll-behavior:smooth; background:var(--ink);
+    scroll-padding-top:calc(var(--bar) + var(--inset) + 40px);
+    scroll-padding-bottom:calc(var(--bar) + var(--inset) + 40px);
+  }
+  body{
+    min-height:100dvh; display:flex; flex-direction:column;
+    padding-bottom:calc(var(--bar) + var(--inset) * 2 + 28px);
+    background:var(--ink); color:var(--text);
+    font-family:var(--ui); font-size:16px; font-weight:500; line-height:1.35;
+    letter-spacing:-.01em; cursor:none; -webkit-font-smoothing:antialiased;
+  }
+  body::-webkit-scrollbar{display:none}
+  .ic{fill:none; stroke:currentColor; stroke-width:1.7;
+      stroke-linecap:round; stroke-linejoin:round; display:block}
+
+  /* ---------------------------------------------------------------- ambiente
+     Nada de manchas de colores sueltas: una sola luz, del color del icono que
+     esta enfocado, que se desplaza con el. La habitacion la ilumina el
+     contenido. El rescoldo calido de abajo es la lampara del salon. */
+  .ambient{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+  .glows{position:absolute; inset:0;
+         transform:translate(calc(var(--amb-x) - 42vh), calc(var(--amb-y) - 42vh));
+         transition:transform .9s var(--ease); will-change:transform}
+  .glow{position:absolute; top:0; left:0; width:84vh; height:84vh;
+        opacity:0; transition:opacity .8s ease;
+        background:radial-gradient(closest-side,
+          rgb(var(--c) / .5), rgb(var(--c) / .15) 44%, transparent 72%)}
+  .glow.show{opacity:1}
+  .hearth{position:absolute; left:-14vw; right:-14vw; bottom:-30vh; height:62vh;
+          background:radial-gradient(closest-side,
+            rgba(255,178,108,.085), transparent 70%)}
+  .vignette{position:absolute; inset:0;
+            background:radial-gradient(128% 104% at 50% 38%,
+              transparent 42%, rgba(0,0,0,.5))}
+
+  /* Velos que funden el contenido al acercarse a las barras: van por debajo
+     del cromo (z 20 < 40) y por encima del contenido. */
+  .veil{position:fixed; left:0; right:0; z-index:20; pointer-events:none}
+  .veil.top{top:0; height:calc(var(--bar) + var(--inset) * 2 + 20px);
+    background:linear-gradient(to bottom, var(--ink) 40%, transparent)}
+  .veil.bot{bottom:0; height:calc(var(--bar) + var(--inset) * 2 + 28px);
+    background:linear-gradient(to top, var(--ink) 44%, transparent)}
+
+  /* ------------------------------------------------------------------ cromo */
+  header,footer{
+    display:flex; align-items:center; gap:clamp(14px,1.4vw,26px);
+    height:var(--bar); padding:0 clamp(18px,1.5vw,30px);
+    border-radius:calc(var(--bar) / 2.6);
+    background:var(--chrome); border:1px solid var(--edge);
+    backdrop-filter:blur(30px) saturate(170%);
+    -webkit-backdrop-filter:blur(30px) saturate(170%);
+    box-shadow:var(--sh-1), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  header{position:sticky; z-index:40; top:var(--inset);
+         margin:var(--inset) var(--gutter) 0; flex:0 0 auto}
+  footer{position:fixed; z-index:40; bottom:var(--inset);
+         left:var(--gutter); right:var(--gutter)}
+
+  .mark{display:flex; align-items:center; gap:.52em; flex:0 0 auto}
+  .mark .ic{width:1.18em; height:1.18em; color:var(--text-2)}
+  h1{font-size:var(--t-display); font-weight:700; letter-spacing:-.035em;
+     line-height:1; white-space:nowrap}
+  h1 b{font-weight:700; color:var(--text-2)}
+  #clock{font-size:var(--t-display); font-weight:350; color:var(--text-2);
+         font-variant-numeric:tabular-nums; letter-spacing:-.02em; line-height:1}
+  .grow{margin-left:auto}
+
+  /* filtro al escribir */
+  #filter{display:none; align-items:center; gap:.5em;
+          padding:.45em .85em; border-radius:var(--r-chip);
+          background:var(--surface-2); border:1px solid var(--edge);
+          font-size:var(--t-head); font-weight:600; letter-spacing:-.02em;
+          line-height:1.1; min-width:0}
+  #filter.on{display:flex}
+  #filter .ic{width:.9em; height:.9em; color:var(--text-3); flex:0 0 auto}
+  #filter span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #filter em{font-style:normal; color:var(--text-3); font-weight:500}
+
+  /* temporizador en marcha: el unico uso de --live aqui */
+  #chip{display:none; align-items:center; gap:.45em; padding:.42em .82em;
+        border-radius:999px; font-size:var(--t-meta); font-weight:650;
+        letter-spacing:0; line-height:1; color:#c6dfff;
+        background:rgb(var(--live-rgb) / .15); border:1px solid rgb(var(--live-rgb) / .38)}
+  #chip.on{display:flex}
+  #chip .ic{width:1.15em; height:1.15em; stroke-width:1.9}
+
+  /* pistas del pie */
+  .hints{display:flex; align-items:center; gap:clamp(14px,1.5vw,28px);
+         font-family:var(--meta); font-size:var(--t-meta); font-weight:450;
+         color:var(--text-3); letter-spacing:0; min-width:0}
+  .hint{display:flex; align-items:center; gap:.5em; white-space:nowrap}
+  .hint .ic{width:1.35em; height:1.35em; color:var(--text-2); flex:0 0 auto}
+
+  /* direccion del mando: es un boton, se llega con las flechas */
+  #addr{
+    display:flex; align-items:center; gap:.6em; margin-left:auto; flex:0 0 auto;
+    padding:.5em .95em; border-radius:999px; border:1px solid transparent;
+    background:transparent; color:var(--text-3); font-family:var(--meta);
+    font-size:var(--t-meta); font-weight:450; cursor:none;
+    transition:background var(--fast), border-color var(--fast),
+               color var(--fast), box-shadow var(--base) var(--ease);
+  }
+  #addr b{color:var(--text-2); font-weight:600;
+          font-variant-numeric:tabular-nums; transition:color var(--fast)}
+  #addr .ic{width:1.15em; height:1.15em; flex:0 0 auto}
+  #addr.sel{
+    background:var(--surface-2); color:var(--text); border-color:var(--edge-hi);
+    box-shadow:0 0 0 2px rgba(255,255,255,.9), 0 12px 30px -10px rgba(0,0,0,.8);
+  }
+  #addr.sel b{color:var(--text)}
+
+  /* --------------------------------------------------------------- secciones */
+  main{position:relative; z-index:1; margin-block:auto; width:100%;
+       padding-top:clamp(10px,1.4vh,26px)}
+  h2{display:flex; align-items:baseline; gap:.55em;
+     font-size:var(--t-head); font-weight:650; letter-spacing:-.028em;
+     color:var(--text); margin:clamp(22px,2.4vh,40px) var(--gutter) 0}
+  h2 em{font-style:normal; font-size:.66em; font-weight:500; color:var(--text-3);
+        font-variant-numeric:tabular-nums}
+  main > section:first-child > h2{margin-top:0}
+
+  .strip{
+    --mL:0px; --mR:0px;
+    display:flex; gap:clamp(20px,1.9vw,38px);
+    padding:clamp(16px,1.8vh,26px) var(--gutter) clamp(18px,2vh,28px);
+    overflow-x:auto; scrollbar-width:none; scroll-padding-inline:var(--gutter);
+    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 var(--mL),
+      #000 calc(100% - var(--mR)), transparent 100%);
+    mask-image:linear-gradient(to right, transparent 0, #000 var(--mL),
+      #000 calc(100% - var(--mR)), transparent 100%);
+  }
+  .strip::-webkit-scrollbar{display:none}
+  .grid{
+    display:grid; justify-content:start;
+    grid-template-columns:repeat(auto-fill, minmax(var(--tile-app), 1fr));
+    gap:clamp(20px,2.1vh,34px) clamp(18px,1.7vw,32px);
+    padding:clamp(16px,1.8vh,26px) var(--gutter) clamp(18px,2vh,28px);
+  }
+
+  /* ----------------------------------------------------------------- fichas
+     El foco es el protagonista de toda la interfaz: lo enfocado se eleva y
+     florece en su propio color, y lo demas se retira. Eso es lo que hace que
+     se lea de un vistazo desde el sofa. */
+  .tile{
+    --tg:150 175 215;
+    display:grid; grid-template-rows:auto var(--label); justify-items:center;
+    gap:.7em; min-width:0; border:none; background:none; color:inherit;
+    font:inherit; cursor:none; scroll-margin-inline:var(--gutter);
+    opacity:.78; filter:saturate(.86);
+    transition:opacity var(--base) ease, filter var(--base) ease;
+  }
+  .art{
+    position:relative; display:grid; place-items:center; overflow:hidden;
+    aspect-ratio:1; border-radius:22.5%;              /* proporcion de icono */
+    background:linear-gradient(162deg, var(--surface-2), var(--surface));
+    border:1px solid var(--edge);
+    box-shadow:var(--sh-1), inset 0 1px 0 rgba(255,255,255,.1);
+    transition:transform var(--base) var(--ease),
+               box-shadow var(--base) ease, border-color var(--base) ease;
+  }
+  .art::after{content:""; position:absolute; inset:0; pointer-events:none;
+    border-radius:inherit;
+    background:linear-gradient(to bottom, rgba(255,255,255,.1), transparent 46%)}
+  .art img{width:72%; height:72%; object-fit:contain; position:relative; z-index:1;
+           filter:drop-shadow(0 10px 22px rgba(0,0,0,.55))}
+  .strip .tile{flex:0 0 var(--tile-feat); width:var(--tile-feat)}
+  .feat .art{width:100%}
+  .app  .art{width:100%; max-width:var(--tile-app)}
+  .app  .art img{width:75%; height:75%}
+  /* sin icono: la inicial, bien puesta, no una letra gigante suelta */
+  .fb{position:relative; z-index:1; font-size:2.1em; font-weight:600;
+      letter-spacing:-.04em; color:var(--text-2)}
+
+  .label{align-self:start; width:100%; min-width:0; text-align:center;
+         white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+         color:var(--text-2); font-size:var(--t-label); font-weight:550;
+         letter-spacing:-.015em; transition:color var(--base) ease}
+
+  @media (hover:hover){
+    .tile:hover{opacity:.9; filter:none}
+    .tile:hover .art{transform:translateY(-3px)}
+  }
+  .tile.sel{opacity:1; filter:none}
+  .tile.sel .art{
+    transform:scale(1.07) translateY(-6px); border-color:var(--edge-hi);
+    box-shadow:0 0 0 2px rgba(255,255,255,.92),
+               0 0 0 8px rgb(var(--tg) / .18),
+               0 24px 54px -14px rgb(var(--tg) / .5),
+               0 26px 52px -18px rgba(0,0,0,.85),
+               inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .tile.sel .label{color:var(--text)}
+  .tile:active .art{transform:scale(1.01) translateY(-2px);
+                    transition-duration:90ms}
+
+  /* la ficha de suspension juega en el mismo sistema de luz */
+  .moon{--tg:138 132 232}
+  .moon .art{background:linear-gradient(162deg,
+    rgb(138 132 232 / .26), rgb(48 62 132 / .14))}
+  .moon .ic{width:44%; height:44%; position:relative; z-index:1;
+            color:#dfe6ff; stroke-width:1.5;
+            filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
+  .moon .count{position:absolute; left:0; right:0; bottom:11%; z-index:1;
+               text-align:center; font-size:.86em; font-weight:650;
+               color:#cfdcff; font-variant-numeric:tabular-nums}
+
+  /* ------------------------------------------------------------ sin resultados
+     Una pantalla vacia es una invitacion a actuar, no un hueco. */
+  .empty{display:none; flex-direction:column; align-items:flex-start; gap:.35em;
+         padding:clamp(28px,5vh,72px) var(--gutter)}
+  .empty.on{display:flex}
+  .empty .ic{width:clamp(30px,2.4vw,42px); height:clamp(30px,2.4vw,42px);
+             color:var(--text-3); margin-bottom:.3em; stroke-width:1.5}
+  .empty h3{font-size:var(--t-head); font-weight:650; letter-spacing:-.028em}
+  .empty p{font-family:var(--meta); font-size:var(--t-meta); font-weight:450;
+           color:var(--text-3)}
+
+  /* -------------------------------------------------------------- hojas */
+  .sheet{position:fixed; inset:0; z-index:60; display:none; place-items:center;
+         padding:var(--gutter); background:rgba(4,5,8,.62);
+         backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px)}
+  .sheet.on{display:grid; animation:veil .2s ease both}
+  @keyframes veil{from{opacity:0}to{opacity:1}}
+  .card{
+    width:min(72vw,840px); padding:clamp(28px,3vw,52px);
+    border-radius:calc(var(--r-card) * 1.2);
+    background:rgba(18,20,27,.82); border:1px solid var(--edge-hi);
+    backdrop-filter:blur(40px) saturate(170%);
+    -webkit-backdrop-filter:blur(40px) saturate(170%);
+    box-shadow:var(--sh-2), inset 0 1px 0 rgba(255,255,255,.12);
+    animation:rise-in .3s var(--ease) both;
+  }
+  @keyframes rise-in{from{transform:translateY(16px) scale(.97); opacity:0}
+                     to{transform:none; opacity:1}}
+  .card .ic.big{width:clamp(34px,2.7vw,48px); height:clamp(34px,2.7vw,48px);
+                color:#dfe6ff; stroke-width:1.5; margin-bottom:.5em}
+  .card h3{font-size:clamp(22px,1.9vw,32px); font-weight:650;
+           letter-spacing:-.032em; margin-bottom:.22em}
+  .card p{font-family:var(--meta); color:var(--text-2); font-weight:450;
+          font-size:clamp(14px,1.05vw,18px); max-width:52ch;
+          margin-bottom:clamp(20px,2vw,32px)}
+  .opts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:clamp(10px,1vw,16px)}
+  .opts.one{grid-template-columns:1fr}
+  .opt{
+    --tg:150 175 215;
+    padding:clamp(15px,1.5vw,22px) 14px; border:1px solid var(--edge);
+    border-radius:calc(var(--r-card) * .62); background:var(--surface);
+    color:var(--text); font-family:inherit; font-weight:650;
+    font-size:clamp(17px,1.4vw,24px); line-height:1.15; letter-spacing:-.025em;
+    cursor:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    transition:transform var(--fast) var(--ease), box-shadow var(--fast) ease,
+               background var(--fast) ease, border-color var(--fast) ease;
+  }
+  .opt small{display:block; font-family:var(--meta); font-size:.5em;
+             font-weight:500; color:var(--text-3); margin-top:.5em;
+             letter-spacing:.02em}
+  .opt.sel{
+    background:var(--surface-2); transform:translateY(-2px) scale(1.03);
+    border-color:var(--edge-hi);
+    box-shadow:0 0 0 2px rgba(255,255,255,.92),
+               0 0 0 7px rgb(var(--tg) / .16),
+               0 18px 40px -14px rgba(0,0,0,.8);
+  }
+  .opt:active{transform:scale(.99); transition-duration:80ms}
+  .opt.danger{grid-column:1/-1; color:#ff8f88; font-size:clamp(15px,1.15vw,19px);
+              font-weight:600}
+  .opt.danger.sel{--tg:255 69 58}
+  /* El campo va HUNDIDO y las opciones van elevadas: es lo que distingue
+     "aqui se escribe" de "esto se pulsa" sin tener que rotularlo. */
+  #host{
+    width:100%; margin-bottom:clamp(16px,1.6vw,26px);
+    padding:clamp(15px,1.4vw,20px) clamp(18px,1.6vw,26px);
+    border-radius:calc(var(--r-card) * .62);
+    background:rgba(0,0,0,.3); border:1px solid rgba(0,0,0,.5);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.55);
+    color:var(--text); font-family:inherit; font-weight:650;
+    font-size:clamp(19px,1.6vw,28px); letter-spacing:-.02em;
+    text-align:left; outline:none; caret-color:rgb(var(--live-rgb));
+    transition:border-color var(--fast), box-shadow var(--fast);
+  }
+  #host:focus{border-color:rgb(var(--live-rgb) / .85);
+              box-shadow:inset 0 2px 6px rgba(0,0,0,.55),
+                         0 0 0 4px rgb(var(--live-rgb) / .22)}
+
+  /* ------------------------------------------------------- entrada de pagina
+     Un solo momento coreografiado al abrir, no una animacion por seccion en
+     cada re-render. Se quita la clase al acabar. */
+  .intro header{animation:drop .5s var(--ease) both}
+  .intro footer{animation:lift .5s var(--ease) .08s both}
+  .intro h2{animation:fade-up .5s var(--ease) both}
+  .intro .art,.intro .label{animation:fade-up .55s var(--ease) both;
+    animation-delay:calc(var(--i,0) * 22ms)}
+  .intro .label{animation-delay:calc(var(--i,0) * 22ms + 40ms)}
+  @keyframes drop{from{opacity:0; transform:translateY(-14px)}to{opacity:1;transform:none}}
+  @keyframes lift{from{opacity:0; transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes fade-up{from{opacity:0; transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  /* ------------------------------------------------------------------ movil
+     La tele tambien se abre a veces desde el telefono: ahi manda el dedo. */
+  @media (max-width:760px){
+    :root{
+      --gutter:18px; --bar:56px; --inset:10px;
+      --tile-feat:min(38vw,168px); --tile-app:min(27vw,120px);
+      --t-display:21px; --t-head:17px; --t-label:13px; --t-meta:12px;
+    }
+    body{cursor:auto}
+    .hints{display:none}
+    #clock{font-weight:400}
+    .tile{opacity:.88; filter:none}
+    .card{width:100%; padding:24px}
+    .opts{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .sheet{padding:16px}
+    #addr{padding:.55em .9em}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.01ms !important;
+      animation-iteration-count:1 !important; transition-duration:.01ms !important}
+    .glow{transition:none}
+    .glows{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="ic-mark"><rect x="2.6" y="4.4" width="18.8" height="13.4" rx="3.2"/><path d="M8.6 21h6.8"/></g>
+  <g id="ic-moon"><path d="M20.8 13.4A8.4 8.4 0 1 1 10.6 3.2a6.6 6.6 0 0 0 10.2 10.2Z"/></g>
+  <g id="ic-pencil"><path d="M4.4 19.6h3.9L19.5 8.4a2.55 2.55 0 0 0-3.6-3.6L4.7 15.7z"/><path d="m14.7 6 3.6 3.6"/></g>
+  <g id="ic-search"><circle cx="10.6" cy="10.6" r="6.6"/><path d="m15.4 15.4 4.4 4.4"/></g>
+  <g id="ic-move"><path d="M9.6 3.8h4.8v5.8h5.8v4.8h-5.8v5.8H9.6v-5.8H3.8V9.6h5.8z"/></g>
+  <g id="ic-enter"><path d="M20 5.6v6a2.6 2.6 0 0 1-2.6 2.6H4.6"/><path d="m8.8 10-4.2 4.2 4.2 4.2"/></g>
+  <g id="ic-return"><path d="M4.8 8.6h10.6a4.6 4.6 0 0 1 0 9.2H9.6"/><path d="m8.4 4.4-3.6 4.2 3.6 4.2"/></g>
+  <g id="ic-timer"><circle cx="12" cy="13.2" r="8"/><path d="M12 9.4v3.8l2.8 1.7"/><path d="M9.6 2.8h4.8"/></g>
+</defs></svg>
+
+<div class="ambient" aria-hidden="true">
+  <div class="glows"><div class="glow a"></div><div class="glow b"></div></div>
+  <div class="hearth"></div>
+  <div class="vignette"></div>
+</div>
+<div class="veil top" aria-hidden="true"></div>
+<div class="veil bot" aria-hidden="true"></div>
+
+<header>
+  <div class="mark">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mark"/></svg>
+    <h1>Mac<b>TV</b></h1>
+  </div>
+  <div id="filter" role="status">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
+    <span id="filterText"></span>
+  </div>
+  <div class="grow"></div>
+  <div id="chip" role="status">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-timer"/></svg>
+    <span id="chipLeft"></span>
+  </div>
+  <div id="clock" role="status"></div>
+</header>
+
+<main>
+  <section id="sec-feat" hidden>
+    <h2>Ver <em id="cFeat"></em></h2>
+    <div class="strip" id="feat"></div>
+  </section>
+  <section id="sec-apps" hidden>
+    <h2>Aplicaciones <em id="cApps"></em></h2>
+    <div class="grid" id="apps"></div>
+  </section>
+  <div class="empty" id="empty">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-search"/></svg>
+    <h3 id="emptyTitle">Nada coincide</h3>
+    <p>Sigue escribiendo, o pulsa esc para ver todo otra vez.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="hints">
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-move"/></svg>moverse</span>
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-enter"/></svg>abrir</span>
+    <span class="hint"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-return"/></svg>volver</span>
+  </div>
+  <button id="addr">
+    <span>Mando <b id="remurl">…</b></span>
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-pencil"/></svg>
+  </button>
+</footer>
+
+<div class="sheet" id="sleepSheet" role="dialog" aria-modal="true" aria-labelledby="sleepTitle">
+  <div class="card">
+    <svg class="ic big" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-moon"/></svg>
+    <h3 id="sleepTitle">Suspender el Mac</h3>
+    <p>Elige cuánto falta para que se duerma. El temporizador sigue en pie aunque cierres MacTV.</p>
+    <div class="opts" id="opts"></div>
+  </div>
+</div>
+
+<div class="sheet" id="ipSheet" role="dialog" aria-modal="true" aria-labelledby="ipTitle">
+  <div class="card">
+    <h3 id="ipTitle">Dirección del mando</h3>
+    <p>Escríbela, o elige una de las que ve el Mac. Se guarda para la próxima vez.</p>
+    <input id="host" spellcheck="false" autocomplete="off" autocapitalize="off"
+           aria-label="Dirección del mando">
+    <div class="opts one" id="ipOpts"></div>
+  </div>
+</div>
+
+<script src="/ui.js"></script>
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const post = (p, b) => fetch(p, {method:"POST", headers:{"Content-Type":"application/json"},
+                                body: JSON.stringify(b||{})});
+/* sonido y vibracion viven en /ui.js, compartidos con el mando */
+const fb = k => MacTV.feedback(k);
+
+const clock = () => $("#clock").textContent =
+  new Date().toLocaleTimeString("es-ES", {hour:"2-digit", minute:"2-digit"});
+clock(); setInterval(clock, 10000);
+
+/* ---- la pagina le dice al Mac donde esta su ventana ----
+   Asi el servidor sabe que proceso es el lanzador y "Menu" puede volver
+   aqui sin confundirse con otra ventana del navegador. */
+function announce(){
+  post("/api/launcher", {x: window.screenX, y: window.screenY,
+                         w: window.outerWidth, h: window.outerHeight}).catch(()=>{});
+}
+announce();
+setInterval(announce, 20000);
+
+/* ---------------- estado ---------------- */
+let feat = [], apps = [], items = [], rows = [], sel = 0, query = "";
+let mode = "grid", optSel = 0, sleepOptions = [15,30,45], addresses = [];
+let firstPaint = true;
+
+/* ---------------- luz ambiente ----------------
+   El color dominante del icono tine el halo del foco y la luz de la sala.
+   Se calcula una vez por app sobre un lienzo de 16x16 y se guarda. */
+const glowCache = new Map();
+const DEFAULT_GLOW = "150 175 215";
+
+function iconGlow(img){
+  const c = document.createElement("canvas");
+  c.width = c.height = 16;
+  const g = c.getContext("2d", {willReadFrequently:true});
+  g.drawImage(img, 0, 0, 16, 16);
+  const d = g.getImageData(0, 0, 16, 16).data;
+  let r = 0, gr = 0, b = 0, w = 0;
+  for (let i = 0; i < d.length; i += 4){
+    const a = d[i+3] / 255;
+    if (a < .35) continue;
+    const mx = Math.max(d[i], d[i+1], d[i+2]), mn = Math.min(d[i], d[i+1], d[i+2]);
+    const sat = mx ? (mx - mn) / mx : 0;
+    const k = a * (.15 + sat * sat * 2.6);      // manda el color, no el gris
+    r += d[i] * k; gr += d[i+1] * k; b += d[i+2] * k; w += k;
+  }
+  if (!w) return DEFAULT_GLOW;
+  r /= w; gr /= w; b /= w;
+  const mx = Math.max(r, gr, b) || 1, s = 222 / mx;   // que se vea sobre negro
+  return `${Math.min(255, r*s)|0} ${Math.min(255, gr*s)|0} ${Math.min(255, b*s)|0}`;
+}
+
+let ambTurn = false;
+function ambient(el){
+  const glow = (el && getComputedStyle(el).getPropertyValue("--tg").trim()) || DEFAULT_GLOW;
+  const root = document.documentElement.style;
+  if (el){
+    const r = el.getBoundingClientRect();
+    root.setProperty("--amb-x", (r.left + r.width / 2) + "px");
+    root.setProperty("--amb-y", (r.top + r.height / 2) + "px");
+  }
+  if (ambient._last === glow) return;
+  ambient._last = glow;
+  const next = $(ambTurn ? ".glow.a" : ".glow.b");
+  const prev = $(ambTurn ? ".glow.b" : ".glow.a");
+  ambTurn = !ambTurn;
+  next.style.setProperty("--c", glow);
+  next.classList.add("show"); prev.classList.remove("show");
+}
+
+/* ---------------- fichas ---------------- */
+function tile(cls, inner, label){
+  const b = document.createElement("button");
+  b.className = "tile " + cls;
+  b.innerHTML = `<div class="art">${inner}</div><div class="label"></div>`;
+  b.querySelector(".label").textContent = label;
+  return b;
+}
+function appTile(a, cls){
+  const el = tile(cls, `<img src="/icons/${a.id}.png" alt="" loading="lazy">`, a.name);
+  const img = el.querySelector("img");
+  if (glowCache.has(a.id)) el.style.setProperty("--tg", glowCache.get(a.id));
+  img.onload = () => {
+    if (glowCache.has(a.id)) return;
+    let g = DEFAULT_GLOW;
+    try { g = iconGlow(img); } catch (e) {}
+    glowCache.set(a.id, g);
+    el.style.setProperty("--tg", g);
+    if (items[sel] === el) ambient(el);
+  };
+  img.onerror = e => {
+    e.target.closest(".art").innerHTML =
+      `<span class="fb">${a.name[0].toUpperCase()}</span>`;
+  };
+  el._open = () => { fb("select"); post("/api/launch", {id:a.id}); };
+  el.onclick = el._open;
+  return el;
+}
+function moonTile(){
+  const el = tile("app moon",
+    `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-moon"/></svg>
+     <span class="count" id="moonCount"></span>`, "Suspensión");
+  el._open = openSleep; el.onclick = el._open;
+  return el;
+}
+
+const addrBtn = $("#addr");
+addrBtn._open = () => openIp();
+addrBtn.onclick = addrBtn._open;
+
+function render(){
+  const q = query.trim().toLowerCase();
+  const ff = feat.filter(a => a.name.toLowerCase().includes(q));
+  const aa = apps.filter(a => a.name.toLowerCase().includes(q));
+  const showMoon = !q || "suspensión suspension dormir luna".includes(q);
+
+  const fw = $("#feat"), aw = $("#apps");
+  fw.innerHTML = ""; aw.innerHTML = "";
+  items = []; rows = [];
+
+  $("#sec-feat").hidden = !ff.length;
+  if (ff.length){
+    const row = [];
+    ff.forEach(a => { const el = appTile(a, "feat");
+                      fw.appendChild(el); row.push(el); items.push(el); });
+    rows.push(row);
+  }
+  $("#sec-apps").hidden = !aa.length && !showMoon;
+  const cells = [];
+  if (showMoon) cells.push(moonTile());
+  aa.forEach(a => cells.push(appTile(a, "app")));
+  cells.forEach(el => { aw.appendChild(el); items.push(el); });
+  items.push(addrBtn);
+
+  /* el recuento solo aparece cuando filtras, que es cuando dice algo */
+  $("#cFeat").textContent = q && ff.length ? ff.length : "";
+  $("#cApps").textContent = q && aa.length ? aa.length : "";
+  const nothing = !ff.length && !aa.length && !showMoon;
+  $("#empty").classList.toggle("on", nothing);
+  if (nothing) $("#emptyTitle").textContent = `Nada coincide con «${query.trim()}»`;
+
+  /* el retardo en cascada solo del primer pintado */
+  if (firstPaint){
+    let i = 0;
+    items.forEach(el => { if (el !== addrBtn) el.style.setProperty("--i", Math.min(i++, 14)); });
+  }
+
+  sel = Math.max(0, Math.min(sel, items.length - 1));
+  requestAnimationFrame(() => { measure(cells); paint(); fades(); });
+  paintTimer();
+}
+
+function fades(){
+  const s = $("#feat");
+  const room = s.scrollWidth - s.clientWidth;
+  s.style.setProperty("--mL", s.scrollLeft > 8 ? "110px" : "0px");
+  s.style.setProperty("--mR", room - s.scrollLeft > 8 ? "130px" : "0px");
+}
+function measure(cells){
+  const grid = [];
+  let row = [], top = null;
+  cells.forEach(el => {
+    const y = Math.round(el.offsetTop);
+    if (top === null || Math.abs(y - top) < 4){ if (top === null) top = y; row.push(el); }
+    else { grid.push(row); row = [el]; top = y; }
+  });
+  if (row.length) grid.push(row);
+  rows = rows.slice(0, $("#sec-feat").hidden ? 0 : 1).concat(grid, [[addrBtn]]);
+}
+function pos(idx){
+  for (let r = 0; r < rows.length; r++){
+    const c = rows[r].indexOf(items[idx]);
+    if (c > -1) return [r, c];
+  }
+  return [0, 0];
+}
+function paint(){
+  items.forEach((el, i) => el.classList.toggle("sel", i === sel));
+  const el = items[sel];
+  if (el && el !== addrBtn) el.scrollIntoView({behavior: MacTV.reduced ? "auto" : "smooth",
+                                               block:"nearest", inline:"center"});
+  ambient(el === addrBtn ? null : el);
+  setTimeout(fades, 340);
+}
+function move(dr, dc){
+  if (!items.length || !rows.length) return;
+  let [r, c] = pos(sel);
+  const r0 = r, c0 = c;
+  if (dc){
+    c += dc;
+    if (c < 0){ if (r > 0){ r--; c = rows[r].length - 1; } else c = 0; }
+    else if (c >= rows[r].length){
+      if (r < rows.length - 1){ r++; c = 0; } else c = rows[r].length - 1;
+    }
+  } else {
+    r = Math.max(0, Math.min(rows.length - 1, r + dr));
+    c = Math.min(c, rows[r].length - 1);
+  }
+  const next = items.indexOf(rows[r][c]);
+  if (next === sel && r === r0 && c === c0){ fb("edge"); return; }
+  sel = next; fb("nav"); paint();
+}
+
+/* ---------------- hoja de suspension ---------------- */
+function buildSleepOpts(){
+  const w = $("#opts"); w.innerHTML = "";
+  sleepOptions.forEach(m => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.innerHTML = `${m}<small>minutos</small>`;
+    b._go = () => { fb("confirm"); post("/api/sleep", {minutes:m}).then(pollSleep); closeSheet(true); };
+    b.onclick = b._go; w.appendChild(b);
+  });
+  /* "Cancelar" solo tiene sentido si hay algo que cancelar */
+  if (timer.active){
+    const c = document.createElement("button");
+    c.className = "opt danger"; c.textContent = "Cancelar el temporizador";
+    c._go = () => { fb("back"); post("/api/sleep", {minutes:0}).then(pollSleep); closeSheet(true); };
+    c.onclick = c._go; w.appendChild(c);
+  }
+}
+function openSleep(){
+  fb("sheet"); buildSleepOpts(); optSel = 0;
+  $("#sleepSheet").classList.add("on"); mode = "sleep"; paintOpts();
+}
+
+/* ---------------- hoja de direccion ---------------- */
+function buildIpOpts(){
+  const w = $("#ipOpts"); w.innerHTML = "";
+  addresses.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = a;
+    b._go = () => saveHost(a.split(":")[0]);
+    b.onclick = b._go; w.appendChild(b);
+  });
+  const c = document.createElement("button");
+  c.className = "opt danger"; c.textContent = "Volver a la detección automática";
+  c._go = () => saveHost("");
+  c.onclick = c._go; w.appendChild(c);
+}
+function saveHost(host){
+  fb("confirm");
+  post("/api/remote", {host}).then(r => r.json())
+    .then(d => { $("#remurl").textContent = d.remote; }).catch(()=>{});
+  closeSheet(true);
+}
+function openIp(){
+  fb("sheet"); buildIpOpts(); optSel = -1;
+  $("#host").value = ($("#remurl").textContent || "").split(":")[0];
+  $("#ipSheet").classList.add("on"); mode = "ip"; paintOpts();
+  setTimeout(() => $("#host").focus(), 60);   // el movil saca el teclado solo
+}
+function closeSheet(quiet){
+  if (!quiet) fb("close");
+  $("#host").blur();
+  document.querySelectorAll(".sheet").forEach(s => s.classList.remove("on"));
+  mode = "grid";
+}
+const opts = () => [...document.querySelectorAll(".sheet.on .opt")];
+const paintOpts = () => opts().forEach((o,i) => o.classList.toggle("sel", i === optSel));
+
+/* ---------------- temporizador ---------------- */
+let timer = {active:false, remaining:0};
+const fmt = s => s >= 60 ? `${Math.floor(s/60)} min` : `${s} s`;
+function paintTimer(){
+  $("#chip").classList.toggle("on", timer.active);
+  if (timer.active) $("#chipLeft").textContent = fmt(timer.remaining);
+  const c = $("#moonCount");
+  if (c) c.textContent = timer.active ? fmt(timer.remaining) : "";
+}
+const pollSleep = () => fetch("/api/sleep").then(r => r.json())
+  .then(d => { timer = d; paintTimer(); }).catch(()=>{});
+setInterval(() => { if (timer.active && timer.remaining > 0){ timer.remaining--; paintTimer(); } }, 1000);
+setInterval(pollSleep, 20000);
+
+/* ---------------- teclado ---------------- */
+let searchTimer;
+function setSearch(){
+  clearTimeout(searchTimer);
+  if (query) searchTimer = setTimeout(() => { query = ""; setSearch(); }, 5000);
+  const box = $("#filter");
+  box.classList.toggle("on", !!query);
+  $("#filterText").textContent = query;
+  sel = 0; render();
+}
+addEventListener("keydown", e => {
+  const k = e.key;
+  const typing = document.activeElement === $("#host");
+
+  if (mode === "ip" && typing){
+    if (k === "Enter"){ e.preventDefault(); saveHost($("#host").value.trim()); }
+    else if (k === "Escape"){ e.preventDefault(); closeSheet(); }
+    else if (k === "ArrowDown"){ e.preventDefault(); $("#host").blur();
+                                 optSel = 0; fb("nav"); paintOpts(); }
+    return;                       // el resto lo escribe el campo
+  }
+  if (mode !== "grid"){
+    const list = opts();
+    if (k === "ArrowRight" || k === "ArrowDown"){
+      if (optSel >= list.length - 1) fb("edge");
+      else { optSel++; fb("nav"); }
+      paintOpts(); }
+    else if (k === "ArrowLeft" || k === "ArrowUp"){
+      if (mode === "ip" && optSel <= 0){ optSel = -1; paintOpts(); $("#host").focus(); }
+      else if (optSel <= 0) fb("edge");
+      else { optSel--; fb("nav"); paintOpts(); } }
+    else if (k === "Enter" || k === " "){ list[optSel] && list[optSel]._go(); }
+    else if (k === "Escape" || k === "Backspace"){ closeSheet(); }
+    else return;
+    e.preventDefault(); return;
+  }
+
+  if (k === "ArrowRight") move(0, 1);
+  else if (k === "ArrowLeft") move(0, -1);
+  else if (k === "ArrowDown") move(1, 0);
+  else if (k === "ArrowUp") move(-1, 0);
+  else if (k === "Enter" || k === " ") items[sel] && items[sel]._open();
+  else if (k === "Escape"){ if (query){ fb("back"); query = ""; setSearch(); } else return; }
+  else if (k === "Backspace"){
+    if (!query) { fb("edge"); } else { query = query.slice(0,-1); fb("back"); setSearch(); } }
+  else if (k.length === 1 && !e.metaKey && !e.ctrlKey){ query += k; fb("nav"); setSearch(); }
+  else return;
+  e.preventDefault();
+});
+
+/* resize: remedir, sin reconstruir en cada evento */
+let reT;
+addEventListener("resize", () => {
+  clearTimeout(reT);
+  reT = setTimeout(() => { announce(); render(); }, 220);
+});
+
+$("#feat").addEventListener("scroll", () => {
+  clearTimeout(fades._t); fades._t = setTimeout(fades, 90);
+}, {passive:true});
+
+fetch("/api/apps").then(r => r.json()).then(d => {
+  feat = d.featured; apps = d.apps;
+  sleepOptions = d.sleepOptions || sleepOptions;
+  addresses = d.addresses || [];
+  $("#remurl").textContent = d.remote || (location.host + "/remote");
+  render();
+  if (!MacTV.reduced){
+    document.body.classList.add("intro");
+    setTimeout(() => document.body.classList.remove("intro"), 1400);
+  }
+  firstPaint = false;
+});
+pollSleep();
+</script>
+</body>
+</html>
