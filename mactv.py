@@ -25,7 +25,9 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+import html as htmllib
+import urllib.request
+from urllib.parse import urljoin, urlparse
 
 PORT = int(os.environ.get("MACTV_PORT", "8777"))
 # Seconds the addresses stay visible in the terminal before MacTV takes over
@@ -36,6 +38,10 @@ WEB = HERE / "web"
 CACHE = Path.home() / ".mactv"
 ICONS = CACHE / "icons"
 CONFIG = CACHE / "config.json"
+# Hero images for the top of the TV. Drop your own in previews/custom as
+# "<App name>.jpg" (or .png/.webp) and it wins over anything automatic.
+PREVIEWS = CACHE / "previews"
+PREVIEWS_ON = os.environ.get("MACTV_PREVIEWS", "1") != "0"
 SLEEPFILE = CACHE / "sleep.json"
 
 CONFIG_VERSION = 3
@@ -85,6 +91,37 @@ STATE = {
     "sleep_options": SLEEP_OPTIONS,
     "launcher_title": "MacTV", "launcher_pid": 0, "launcher_win": None,
     "fresh_pids": set(), "running": {},
+    "meta": {},
+}
+
+# One line under the title in the hero, for the usual suspects. Web apps
+# that aren't here get their page's own description instead.
+TAGLINES = {
+    "netflix": "Series, films and documentaries",
+    "youtube": "Videos, music and live streams",
+    "disney+": "Disney, Pixar, Marvel, Star Wars and National Geographic",
+    "twitch": "Live streams, games and chat",
+    "stremio": "Your media center, all in one place",
+    "spotify": "Music and podcasts",
+    "prime video": "Films, series and Amazon Originals",
+    "max": "HBO series, films and more",
+    "apple tv": "Apple Originals, films and series",
+    "plex": "Your own library, streamed",
+    "infuse": "Your own library, beautifully",
+    "vlc": "Plays anything",
+    "music": "Your music library",
+    "podcasts": "Shows to listen to",
+    "photos": "Your photos and memories",
+    "safari": "The web",
+    "brave browser": "The web",
+    "google chrome": "The web",
+    "arc": "The web",
+    "steam": "Your games",
+    "system settings": "Mac settings",
+    "facetime": "Video calls",
+    "filmin": "Independent and European cinema",
+    "movistar plus+": "TV, sport and series",
+    "crunchyroll": "Anime",
 }
 
 # ---------------------------------------------------------------------------
@@ -724,6 +761,116 @@ def build_icons(apps, log=print):
 
 
 # ---------------------------------------------------------------------------
+# Previews: the image at the top of the TV for the focused app
+# ---------------------------------------------------------------------------
+
+IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
+IMG_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+             ".webp": "image/webp"}
+_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 " \
+      "(KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+
+
+def preview_file(app):
+    """User image first (by name), then the one fetched automatically."""
+    custom = PREVIEWS / "custom"
+    for ext in IMG_EXT:
+        f = custom / (app["name"] + ext)
+        if f.is_file():
+            return f
+    for ext in IMG_EXT:
+        f = PREVIEWS / (app["id"] + ext)
+        if f.is_file():
+            return f
+    return None
+
+
+def _get(url, limit):
+    req = urllib.request.Request(url, headers={"User-Agent": _UA,
+                                               "Accept-Language": "en,es;q=0.8"})
+    with urllib.request.urlopen(req, timeout=8) as r:
+        return r.read(limit), r.headers.get_content_type(), r.geturl()
+
+
+def _meta(page, *names):
+    for n in names:
+        for pat in (rf'<meta[^>]+(?:property|name)=["\']{re.escape(n)}["\'][^>]*'
+                    rf'content=["\']([^"\']+)',
+                    rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]*'
+                    rf'(?:property|name)=["\']{re.escape(n)}["\']'):
+            m = re.search(pat, page, re.I)
+            if m:
+                return htmllib.unescape(m.group(1)).strip()
+    return ""
+
+
+def fetch_preview(app):
+    """A web app's own share image (og:image) and description. Asks only the
+    site the web app already opens, once; the result is cached on disk."""
+    raw, _, final = _get(app["url"], 900_000)
+    page = raw.decode("utf-8", "replace")
+    desc = _meta(page, "og:description", "description", "twitter:description")
+    img = _meta(page, "og:image", "og:image:url", "twitter:image")
+    out = {"desc": desc[:160]}
+    if img:
+        data, ctype, _ = _get(urljoin(final, img), 8_000_000)
+        ext = {"image/png": ".png", "image/webp": ".webp"}.get(ctype, ".jpg")
+        if ctype.startswith("image/") and len(data) > 2048:
+            f = PREVIEWS / (app["id"] + ext)
+            f.write_bytes(data)
+            # Many sites share their logo, not a picture. A logo stretched
+            # across the screen looks worse than the poster made from the
+            # icon, so only wide images that are big enough stay.
+            if not _is_backdrop(f):
+                f.unlink(missing_ok=True)
+    return out
+
+
+def _is_backdrop(f):
+    r = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(f)],
+                       capture_output=True, text=True)
+    dims = re.findall(r"pixel(?:Width|Height):\s*(\d+)", r.stdout)
+    if len(dims) != 2:
+        return False
+    w, h = int(dims[0]), int(dims[1])
+    return w >= 960 and h > 0 and w / h >= 1.4
+
+
+def build_previews(apps):
+    PREVIEWS.mkdir(parents=True, exist_ok=True)
+    (PREVIEWS / "custom").mkdir(exist_ok=True)
+    mfile = PREVIEWS / "meta.json"
+    try:
+        meta = json.loads(mfile.read_text())
+    except (OSError, ValueError):
+        meta = {}
+    STATE["meta"] = meta
+    if not PREVIEWS_ON:
+        return
+    for a in apps:
+        if not a.get("url") or a["id"] in meta:
+            continue
+        try:
+            meta[a["id"]] = fetch_preview(a)
+        except Exception:
+            meta[a["id"]] = {"desc": ""}       # don't keep asking every launch
+        try:
+            mfile.write_text(json.dumps(meta, ensure_ascii=False))
+        except OSError:
+            pass
+
+
+def public_app(a):
+    host = urlparse(a.get("url") or "").hostname or ""
+    desc = (TAGLINES.get(a["name"].lower())
+            or STATE["meta"].get(a["id"], {}).get("desc") or "")
+    return {"id": a["id"], "name": a["name"],
+            "kind": "web" if a.get("url") else "app",
+            "host": host[4:] if host.startswith("www.") else host,
+            "desc": desc, "preview": preview_file(a) is not None}
+
+
+# ---------------------------------------------------------------------------
 # Sleep timer
 # ---------------------------------------------------------------------------
 
@@ -1342,8 +1489,14 @@ class Handler(BaseHTTPRequestHandler):
             if not m:
                 return self._send(404, b'{"error":"bad icon"}')
             return self._file(ICONS / (m.group(1) + ".png"), "image/png", cache=True)
+        if p.startswith("/previews/"):
+            app = STATE["by_id"].get(p[10:])
+            f = app and preview_file(app)
+            if not f:
+                return self._send(404, b'{"error":"no preview"}')
+            return self._file(f, IMG_TYPES[f.suffix.lower()], cache=True)
         if p == "/api/apps":
-            pub = lambda a: {"id": a["id"], "name": a["name"]}
+            pub = public_app
             return self._json({"featured": [pub(a) for a in STATE["featured"]],
                                "apps": [pub(a) for a in STATE["apps"]],
                                "remote": remote_url(),
@@ -1448,6 +1601,7 @@ def main():
     # Icons go after printing: so what's above shows up right away, not
     # only once extraction finishes.
     build_icons(everything)
+    threading.Thread(target=build_previews, args=(everything,), daemon=True).start()
 
     if "--no-ui" not in sys.argv:
         # MacTV opens full screen, i.e. on its own desktop, and the terminal

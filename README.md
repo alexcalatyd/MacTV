@@ -98,18 +98,33 @@ nothing. If it's missing, MacTV warns you on startup and opens the panel.
 - **Watch** — the pinned apps: Netflix, YouTube, Disney+ and Twitch (your
   Brave web apps), plus Stremio and Spotify, which open the native app. Any
   new web app you create in Brave shows up here on its own.
-- **Apps** — everything else, with **Sleep** (the moon) as the first tile.
+- **Apps** — everything else, with **Sleep** (the moon) as the first card.
 - Arrow keys to move around, `OK` opens, `esc` goes back. Typing filters on
   the fly and the filter clears itself after 5 seconds.
 
-Everything — header, titles, the first tile in each row, and the footer — is
-aligned to the same margin, and the whole block centers vertically when
-there's room to spare.
+It's laid out like a smart TV: the top of the screen is a **big preview of
+whatever is focused** — its picture, name, a one-line description and what
+`OK` will do — and the bottom is **shelves of rectangular cards** you move
+along. Rows scroll sideways and don't wrap; up and down land on whatever is
+right above or below.
 
-The focused tile rises and the rest recede. The background light **comes
-from the icon you have focused**: MacTV pulls its dominant color and uses it
-to tint the room, which shifts to follow the focus. That way you can tell
-where you are from across the room without reading anything.
+The focused card grows, gets a white ring with a light orbiting its edge,
+and the rest of its row steps back. The color of the whole room **comes from
+the icon you have focused**: MacTV pulls its dominant color and uses it to
+tint the card, the glow and the preview, so you can tell where you are from
+across the room without reading anything.
+
+### Previews
+
+For web apps, MacTV asks the site once for its own share image and
+description (`og:image`, `og:description`) and caches them in
+`~/.mactv/previews`. Only wide, large pictures are kept: plenty of sites
+share just their logo, and for those (and for native apps) the preview is a
+poster made from the icon, with an aurora in its colors.
+
+To use your own picture, drop it in `~/.mactv/previews/custom/` named after
+the app — `Netflix.jpg`, `Spotify.png`, `Stremio.webp` — and it wins over
+anything automatic. `MACTV_PREVIEWS=0 mactv` turns the automatic fetch off.
 
 ## Each app gets its own desktop
 
@@ -282,13 +297,13 @@ Everything lives in `~/.mactv/config.json`:
 
 Delete the file and it regenerates. Port: `MACTV_PORT=9000 mactv`. If you
 install a new app, delete `~/.mactv/icons` and restart so it picks up its
-icon.
+icon. To fetch a web app's preview again, delete `~/.mactv/previews/meta.json`.
 
 ### The remote's address
 
 Down in the corner of the TV, the remote's address shows up with a pencil
-icon. It's a button: reachable with the arrow keys (it's at the very
-bottom) or tapped from the phone's trackpad. Inside, you can type it in by
+icon. It's a button: reachable with the arrow keys (press down from the
+Apps shelf) or tapped from the phone's trackpad. Inside, you can type it in by
 hand, pick one of the addresses the Mac detects, or go back to automatic
 detection. It's saved as `remote_host` inside `config.json`.
 
