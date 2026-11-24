@@ -52,6 +52,18 @@ general, any app on the Mac.
 
 ## Installation
 
+### With Homebrew
+
+```sh
+brew tap alexcalatyd/tap
+brew trust alexcalatyd/tap   # Homebrew asks you to trust third-party taps once
+brew install alexcalatyd/tap/mactv
+```
+
+Then just run `mactv` from anywhere.
+
+### From source
+
 ```bash
 git clone https://github.com/alexcalatyd/MacTV.git
 cd MacTV
